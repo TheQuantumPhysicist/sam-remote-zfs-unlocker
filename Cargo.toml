@@ -1,0 +1,37 @@
+[package]
+name = "zfs-remote-unlocker"
+description = "Software that can remotely unlock ZFS drives through a web page"
+readme = "README.md"
+license = "MIT"
+version = "0.1.0"
+authors = ["Samer Afach"]
+edition = "2021"
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.75"
+version = "0.1.0"
+license = "MIT"
+
+[workspace]
+members = [
+    "webserver",
+]
+
+default-members = [
+    "webserver",
+]
+
+[dependencies]
+api-server = { path = "webserver" }
+tokio = { workspace = true }
+
+
+[workspace.dependencies]
+axum = "0.7"
+hyper = "1.0"
+sam-zfs-unlocker = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tokio = { version = "1.39", features = ["full"] }
