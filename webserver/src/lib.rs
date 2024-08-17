@@ -7,40 +7,22 @@ use axum::{
     serve::Serve,
     Json, Router,
 };
+use common::types::{
+    DatasetFullMountState, DatasetList, DatasetMountedResponse, DatasetsFullMountState,
+    DatasetsMountState, KeyLoadedResponse,
+};
 use hyper::{HeaderMap, StatusCode};
 use sam_zfs_unlocker::{
     zfs_is_dataset_mounted, zfs_is_key_loaded, zfs_load_key, zfs_mount_dataset, zfs_unload_key,
     zfs_unmount_dataset, ZfsError,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
 use tokio::{net::TcpListener, sync::Mutex};
 
 #[derive(Debug, Deserialize)]
 struct DatasetBody {
     dataset_name: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct DatasetMountedResponse {
-    dataset_name: String,
-    is_mounted: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct KeyLoadedResponse {
-    dataset_name: String,
-    key_loaded: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct DatasetList {
-    datasets: Vec<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct DatasetsMountState {
-    datasets_mounted: BTreeMap<String, bool>,
 }
 
 async fn handler_404() -> impl IntoResponse {
@@ -191,7 +173,9 @@ async fn locked_datasets(State(_): State<Arc<Mutex<()>>>) -> Result<impl IntoRes
     }))
 }
 
-async fn datasets_mount_state(State(_): State<Arc<Mutex<()>>>) -> Result<impl IntoResponse, Error> {
+async fn all_datasets_mount_state(
+    State(_): State<Arc<Mutex<()>>>,
+) -> Result<impl IntoResponse, Error> {
     let mounts = sam_zfs_unlocker::zfs_list_datasets_mountpoints()?;
 
     let mount_states = mounts
@@ -209,17 +193,41 @@ async fn datasets_mount_state(State(_): State<Arc<Mutex<()>>>) -> Result<impl In
     }))
 }
 
+async fn unmounted_datasets(State(_): State<Arc<Mutex<()>>>) -> Result<impl IntoResponse, Error> {
+    let mount_states = sam_zfs_unlocker::zfs_list_unmounted_datasets()?;
+
+    let mount_states = mount_states
+        .into_iter()
+        .map(|(ds_name, m)| {
+            (
+                ds_name,
+                DatasetFullMountState {
+                    dataset_name: m.dataset_name,
+                    key_loaded: m.is_key_loaded,
+                    is_mounted: m.is_mounted,
+                },
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+
+    Ok(Json::from(DatasetsFullMountState {
+        states: mount_states,
+    }))
+}
+
 fn routes(permissive: bool) -> Router<Arc<Mutex<()>>> {
     let router = Router::new();
 
     let router = router
         .route("/locked_datasets", get(locked_datasets))
-        .route("/datasets_mount_state", get(datasets_mount_state))
+        .route("/unmounted_datasets", get(unmounted_datasets))
         .route("/load_key", post(load_key))
         .route("/mount", post(mount_dataset));
 
+    // Permissive mode reveals more information about datasets that are not encrypted or locked
     if permissive {
         router
+            .route("/datasets_mount_state", get(all_datasets_mount_state))
             .route("/unload_key", post(unload_key))
             .route("/unmount", post(unmount_dataset))
     } else {

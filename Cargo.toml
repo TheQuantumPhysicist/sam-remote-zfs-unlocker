@@ -15,7 +15,9 @@ license = "MIT"
 
 [workspace]
 members = [
-    "webserver",
+   "common",
+   "frontend",
+   "webserver",
 ]
 
 default-members = [
@@ -28,6 +30,7 @@ tokio = { workspace = true }
 
 
 [workspace.dependencies]
+async-trait = "0.1"
 axum = "0.7"
 hyper = "1.0"
 sam-zfs-unlocker = "0.1"
