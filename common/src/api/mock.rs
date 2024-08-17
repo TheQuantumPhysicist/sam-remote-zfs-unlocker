@@ -31,6 +31,29 @@ pub struct ApiMock {
     permissive: bool,
 }
 
+impl ApiMock {
+    pub fn new(permissive: bool, dataset_names_and_password: Vec<(String, String)>) -> Self {
+        let state = dataset_names_and_password
+            .into_iter()
+            .map(|(ds_name, password)| {
+                (
+                    ds_name.to_string(),
+                    MockDatasetDetails {
+                        state: DatasetFullMountState {
+                            dataset_name: ds_name,
+                            key_loaded: false,
+                            is_mounted: false,
+                        },
+                        unlock_password: password,
+                    },
+                )
+            })
+            .collect();
+
+        Self { state, permissive }
+    }
+}
+
 #[async_trait]
 impl ZfsRemoteAPI for ApiMock {
     type Error = ApiMockError;

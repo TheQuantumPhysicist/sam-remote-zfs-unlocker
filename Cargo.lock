@@ -383,6 +383,7 @@ dependencies = [
 name = "frontend"
 version = "0.1.0"
 dependencies = [
+ "common",
  "console_error_panic_hook",
  "leptos",
  "reqwasm",
