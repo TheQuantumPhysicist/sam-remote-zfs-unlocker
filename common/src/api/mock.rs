@@ -26,7 +26,7 @@ pub struct MockDatasetDetails {
 
 pub struct ApiMock {
     state: BTreeMap<String, MockDatasetDetails>,
-    /// Permissive is true when all functionalities is allowed in the API server
+    /// Permissive is true when all functionalities are allowed in the API server
     /// when false, only limited functionality exists
     permissive: bool,
 }

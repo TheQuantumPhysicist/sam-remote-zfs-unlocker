@@ -1,3 +1,5 @@
+pub mod state;
+
 use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
@@ -18,6 +20,7 @@ use sam_zfs_unlocker::{
 };
 use serde::Deserialize;
 use serde_json::json;
+use state::ServerState;
 use tokio::{net::TcpListener, sync::Mutex};
 
 #[derive(Debug, Deserialize)]
@@ -41,6 +44,8 @@ enum Error {
     PassphraseNotProvided(String),
     #[error("ZFS passphrase for dataset {1} is not printable. Error: {0}")]
     NonPrintablePassphrase(String, String),
+    #[error("Server running in non-permissive. This action is disallowed.")]
+    NonPermissiveMode,
 }
 
 impl IntoResponse for Error {
@@ -51,6 +56,7 @@ impl IntoResponse for Error {
             Error::KeyNotLoadedForDataset(_) => (StatusCode::METHOD_NOT_ALLOWED, self.to_string()),
             Error::PassphraseNotProvided(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
             Error::NonPrintablePassphrase(_, _) => (StatusCode::BAD_REQUEST, self.to_string()),
+            Error::NonPermissiveMode => (StatusCode::UNAUTHORIZED, self.to_string()),
         };
 
         (status, Json(json!({ "error": message }))).into_response()
@@ -58,7 +64,7 @@ impl IntoResponse for Error {
 }
 
 async fn mount_dataset(
-    State(_): State<Arc<Mutex<()>>>,
+    State(_): State<Arc<Mutex<ServerState>>>,
     json_body: Json<DatasetBody>,
 ) -> Result<impl IntoResponse, Error> {
     let dataset_name = &json_body.dataset_name;
@@ -82,9 +88,14 @@ async fn mount_dataset(
 }
 
 async fn unmount_dataset(
-    State(_): State<Arc<Mutex<()>>>,
+    State(state): State<Arc<Mutex<ServerState>>>,
     json_body: Json<DatasetBody>,
 ) -> Result<impl IntoResponse, Error> {
+    let is_permissive = state.lock().await.is_permissive();
+    if !is_permissive {
+        return Err(Error::NonPermissiveMode);
+    }
+
     let dataset_name = &json_body.dataset_name;
     if !zfs_is_dataset_mounted(dataset_name)?.ok_or(Error::DatasetNotFound(dataset_name.clone()))? {
         return Ok(Json::from(DatasetMountedResponse {
@@ -102,7 +113,7 @@ async fn unmount_dataset(
 }
 
 async fn load_key(
-    State(_): State<Arc<Mutex<()>>>,
+    State(_): State<Arc<Mutex<ServerState>>>,
     headers: HeaderMap,
     json_body: Json<DatasetBody>,
 ) -> Result<impl IntoResponse, Error> {
@@ -133,9 +144,14 @@ async fn load_key(
 }
 
 async fn unload_key(
-    State(_): State<Arc<Mutex<()>>>,
+    State(state): State<Arc<Mutex<ServerState>>>,
     json_body: Json<DatasetBody>,
 ) -> Result<impl IntoResponse, Error> {
+    let is_permissive = state.lock().await.is_permissive();
+    if !is_permissive {
+        return Err(Error::NonPermissiveMode);
+    }
+
     let dataset_name = &json_body.dataset_name;
 
     if !zfs_is_key_loaded(dataset_name)?.ok_or(Error::DatasetNotFound(dataset_name.clone()))? {
@@ -154,7 +170,7 @@ async fn unload_key(
 }
 
 async fn encrypted_locked_datasets(
-    State(_): State<Arc<Mutex<()>>>,
+    State(_): State<Arc<Mutex<ServerState>>>,
 ) -> Result<impl IntoResponse, Error> {
     let mounts = sam_zfs_unlocker::zfs_list_datasets_mountpoints()?;
 
@@ -175,9 +191,16 @@ async fn encrypted_locked_datasets(
     }))
 }
 
+/// Returns a list of ALL datasets (whether encrypted or not) and whether they're mounted.
+/// This function only works in permissive mode.
 async fn all_datasets_mount_state(
-    State(_): State<Arc<Mutex<()>>>,
+    State(state): State<Arc<Mutex<ServerState>>>,
 ) -> Result<impl IntoResponse, Error> {
+    let is_permissive = state.lock().await.is_permissive();
+    if !is_permissive {
+        return Err(Error::NonPermissiveMode);
+    }
+
     let mounts = sam_zfs_unlocker::zfs_list_datasets_mountpoints()?;
 
     let mount_states = mounts
@@ -195,10 +218,14 @@ async fn all_datasets_mount_state(
     }))
 }
 
+/// Returns a list of the encrypted datasets, and whether they're mounted, and whether their keys are loaded.
+/// In permissive mode, all encrypted datasets are returns. In non-permissive mode, only unmounted are returned.
 async fn encrypted_unmounted_datasets(
-    State(_): State<Arc<Mutex<()>>>,
+    State(state): State<Arc<Mutex<ServerState>>>,
 ) -> Result<impl IntoResponse, Error> {
     let mount_states = sam_zfs_unlocker::zfs_list_unmounted_datasets()?;
+
+    let permissive = state.lock().await.is_permissive();
 
     let mount_states = mount_states
         .into_iter()
@@ -212,6 +239,7 @@ async fn encrypted_unmounted_datasets(
                 },
             )
         })
+        .filter(|(_ds_name, m)| if permissive { true } else { !m.is_mounted })
         .collect::<BTreeMap<_, _>>();
 
     Ok(Json::from(DatasetsFullMountState {
@@ -219,34 +247,40 @@ async fn encrypted_unmounted_datasets(
     }))
 }
 
-fn routes(permissive: bool) -> Router<Arc<Mutex<()>>> {
+/// Returns true if permissive mode is enabled
+async fn is_permissive(
+    State(state): State<Arc<Mutex<ServerState>>>,
+) -> Result<impl IntoResponse, Error> {
+    Ok(Json::from(state.lock().await.is_permissive()))
+}
+
+fn routes() -> Router<Arc<Mutex<ServerState>>> {
     let router = Router::new();
 
-    let router = router
+    router
         .route("/encrypted_locked_datasets", get(encrypted_locked_datasets))
         .route(
             "/encrypted_unmounted_datasets",
             get(encrypted_unmounted_datasets),
         )
         .route("/load_key", post(load_key))
-        .route("/mount", post(mount_dataset));
-
-    // Permissive mode reveals more information about datasets that are not encrypted or locked
-    if permissive {
-        router
-            .route("/all_datasets_mount_state", get(all_datasets_mount_state))
-            .route("/unload_key", post(unload_key))
-            .route("/unmount", post(unmount_dataset))
-    } else {
-        router
-    }
+        .route("/mount", post(mount_dataset))
+        .route("/is_permissive", get(is_permissive))
+        .route("/all_datasets_mount_state", get(all_datasets_mount_state))
+        .route("/unload_key", post(unload_key))
+        .route("/unmount", post(unmount_dataset))
 }
 
-pub fn web_server(socket: TcpListener, permissive: bool) -> Serve<IntoMakeService<Router>, Router> {
-    let state = Arc::new(Mutex::new(()));
+pub fn web_server(
+    socket: TcpListener,
+    is_permissive: bool,
+) -> Serve<IntoMakeService<Router>, Router> {
+    let state = ServerState::new(is_permissive);
+    // Placeholder state, for future need
+    let state = Arc::new(Mutex::new(state));
 
     let routes = Router::new()
-        .nest("/zfs", routes(permissive))
+        .nest("/zfs", routes())
         .with_state(state)
         .fallback(handler_404);
 
