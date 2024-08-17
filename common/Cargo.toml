@@ -9,3 +9,5 @@ license.workspace = true
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+thiserror = "1.0"
+tokio = { workspace = true }

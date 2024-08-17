@@ -153,7 +153,9 @@ async fn unload_key(
     }))
 }
 
-async fn locked_datasets(State(_): State<Arc<Mutex<()>>>) -> Result<impl IntoResponse, Error> {
+async fn encrypted_locked_datasets(
+    State(_): State<Arc<Mutex<()>>>,
+) -> Result<impl IntoResponse, Error> {
     let mounts = sam_zfs_unlocker::zfs_list_datasets_mountpoints()?;
 
     let key_loaded_all = mounts
@@ -193,7 +195,9 @@ async fn all_datasets_mount_state(
     }))
 }
 
-async fn unmounted_datasets(State(_): State<Arc<Mutex<()>>>) -> Result<impl IntoResponse, Error> {
+async fn encrypted_unmounted_datasets(
+    State(_): State<Arc<Mutex<()>>>,
+) -> Result<impl IntoResponse, Error> {
     let mount_states = sam_zfs_unlocker::zfs_list_unmounted_datasets()?;
 
     let mount_states = mount_states
@@ -219,15 +223,18 @@ fn routes(permissive: bool) -> Router<Arc<Mutex<()>>> {
     let router = Router::new();
 
     let router = router
-        .route("/locked_datasets", get(locked_datasets))
-        .route("/unmounted_datasets", get(unmounted_datasets))
+        .route("/encrypted_locked_datasets", get(encrypted_locked_datasets))
+        .route(
+            "/encrypted_unmounted_datasets",
+            get(encrypted_unmounted_datasets),
+        )
         .route("/load_key", post(load_key))
         .route("/mount", post(mount_dataset));
 
     // Permissive mode reveals more information about datasets that are not encrypted or locked
     if permissive {
         router
-            .route("/datasets_mount_state", get(all_datasets_mount_state))
+            .route("/all_datasets_mount_state", get(all_datasets_mount_state))
             .route("/unload_key", post(unload_key))
             .route("/unmount", post(unmount_dataset))
     } else {

@@ -259,6 +259,8 @@ dependencies = [
  "async-trait",
  "serde",
  "serde_json",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
