@@ -122,7 +122,7 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         move |_| {
             let api = api.clone();
             let dataset_name = dataset_name.clone();
-            async move { api.dataset_state(&*dataset_name).await }
+            async move { api.dataset_state(&dataset_name).await }
         },
     );
 
@@ -140,7 +140,7 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     >| {
         match key_loaded_result {
             Ok(key_loaded) => view! {
-                <Show when=move || key_loaded == false fallback=|| view! { "Key already loaded" }>
+                <Show when=move || !key_loaded fallback=|| view! { "Key already loaded" }>
                     {
                         view! {
                             <input
