@@ -19,19 +19,19 @@ pub struct DatasetList {
     pub datasets: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetsMountState {
     pub datasets_mounted: BTreeMap<String, bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetFullMountState {
     pub dataset_name: String,
     pub key_loaded: bool,
     pub is_mounted: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetsFullMountState {
     pub states: BTreeMap<String, DatasetFullMountState>,
 }

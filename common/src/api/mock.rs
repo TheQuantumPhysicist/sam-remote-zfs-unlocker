@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 
 use crate::types::{
-    DatasetFullMountState, DatasetList, DatasetMountedResponse, DatasetsMountState,
+    DatasetFullMountState, DatasetList, DatasetMountedResponse, DatasetsFullMountState,
     KeyLoadedResponse,
 };
 
@@ -22,6 +22,7 @@ pub enum ApiMockError {
     CannotUnlockKeyForMountDataset(String),
 }
 
+#[derive(Debug, Clone)]
 pub struct MockDatasetDetails {
     state: DatasetFullMountState,
     unlock_password: String,
@@ -69,7 +70,7 @@ impl ApiMock {
 impl ZfsRemoteAPI for ApiMock {
     type Error = ApiMockError;
 
-    async fn locked_datasets(&self) -> Result<DatasetList, Self::Error> {
+    async fn encrypted_locked_datasets(&self) -> Result<DatasetList, Self::Error> {
         sleep_for_dramatic_effect().await;
 
         let inner = self.inner.lock().expect("Poisoned mutex");
@@ -82,7 +83,7 @@ impl ZfsRemoteAPI for ApiMock {
             .collect();
         Ok(DatasetList { datasets })
     }
-    async fn unmounted_datasets(&self) -> Result<DatasetsMountState, Self::Error> {
+    async fn encrypted_unmounted_datasets(&self) -> Result<DatasetsFullMountState, Self::Error> {
         sleep_for_dramatic_effect().await;
 
         let inner = self.inner.lock().expect("Poisoned mutex");
@@ -90,9 +91,11 @@ impl ZfsRemoteAPI for ApiMock {
         let datasets_mounted = inner
             .state
             .iter()
-            .map(|(ds_name, m)| (ds_name.to_string(), m.state.is_mounted))
+            .map(|(ds_name, m)| (ds_name.to_string(), m.state.clone()))
             .collect();
-        Ok(DatasetsMountState { datasets_mounted })
+        Ok(DatasetsFullMountState {
+            states: datasets_mounted,
+        })
     }
     async fn load_key(
         &mut self,

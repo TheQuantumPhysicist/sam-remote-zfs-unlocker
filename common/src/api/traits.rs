@@ -1,12 +1,14 @@
-use crate::types::{DatasetList, DatasetMountedResponse, DatasetsMountState, KeyLoadedResponse};
+use crate::types::{
+    DatasetList, DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse,
+};
 use async_trait::async_trait;
 
 #[async_trait]
 pub trait ZfsRemoteAPI: Clone {
     type Error: std::error::Error + Send + Sync + Clone + 'static;
 
-    async fn locked_datasets(&self) -> Result<DatasetList, Self::Error>;
-    async fn unmounted_datasets(&self) -> Result<DatasetsMountState, Self::Error>;
+    async fn encrypted_locked_datasets(&self) -> Result<DatasetList, Self::Error>;
+    async fn encrypted_unmounted_datasets(&self) -> Result<DatasetsFullMountState, Self::Error>;
     async fn load_key(
         &mut self,
         dataset_name: &str,
