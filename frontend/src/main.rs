@@ -112,12 +112,13 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     let dataset_name_clone = dataset_name.clone();
     let dataset_name_for_pw = dataset_name.clone();
 
+    let (reload_signal, set_reload_signal) = create_signal(0u64);
 
     let api_for_pw: A = api.clone();
 
     let (password_in_input, set_password_in_input) = create_signal("".to_string());
     let reloaded_dataset = create_local_resource(
-        move || (),
+        move || reload_signal.get(),
         move |_| {
             let api = api.clone();
             let dataset_name = dataset_name.clone();
@@ -152,7 +153,7 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
                             />
                             <button on:click=move |_| {
                                 load_key_password.dispatch(password_in_input.get());
-                                reloaded_dataset.refetch();
+                                set_reload_signal.set(reload_signal.get().wrapping_add(1));
                             }>"Submit"</button>
                         }
                     }
@@ -167,7 +168,8 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         }
     };
 
-    let password_field_or_loading = move || {
+    let password_field_or_loading = move |sig: ReadSignal<u64>| {
+        sig.get();
         let ds_info = reloaded_dataset.map(|ds| ds.clone().map(|m| m.key_loaded));
         match ds_info {
             Some(key_loaded) => password_field_or_key_already_loaded(key_loaded).into_view(),
@@ -180,7 +182,7 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
             <th>
                 <p>{&*dataset_name_clone}</p>
             </th>
-            <th>{password_field_or_loading}</th>
+            <th>{move || password_field_or_loading(reload_signal)}</th>
             <th>
                 <p>"<Mount button>"</p>
             </th>
