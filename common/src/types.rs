@@ -24,7 +24,7 @@ pub struct DatasetsMountState {
     pub datasets_mounted: BTreeMap<String, bool>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct DatasetFullMountState {
     pub dataset_name: String,
     pub key_loaded: bool,

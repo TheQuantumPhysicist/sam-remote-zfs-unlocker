@@ -1,5 +1,10 @@
+use std::sync::Arc;
+
 use common::{
-    api::{mock::ApiMock, traits::ZfsRemoteHighLevel},
+    api::{
+        mock::ApiMock,
+        traits::{ZfsRemoteAPI, ZfsRemoteHighLevel},
+    },
     types::{DatasetFullMountState, DatasetsFullMountState},
 };
 use futures::join;
@@ -93,7 +98,6 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
             }>
                 <div>{zfs_table_view}</div>
             </Transition>
-
         </ErrorBoundary>
     }
 }
@@ -104,31 +108,71 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     current_mount_state: &'a DatasetFullMountState,
 ) -> impl IntoView {
-    let _api = api;
+    let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
+    let dataset_name_clone = dataset_name.clone();
+
+    let (mount_state, _set_mount_state) = create_signal(Option::<DatasetFullMountState>::None);
 
     let (password_in_input, set_name) = create_signal("Controlled".to_string());
     let (password, set_password) = create_signal("".to_string());
+    let reloaded_dataset = create_local_resource(
+        move || mount_state.get(),
+        move |_| {
+            let api = api.clone();
+            let dataset_name = dataset_name.clone();
+            async move { api.dataset_state(&*dataset_name).await }
+        },
+    );
+
+    let password_field_or_key_already_loaded = move |key_loaded_result: Result<
+        bool,
+        <A as ZfsRemoteAPI>::Error,
+    >| {
+        match key_loaded_result {
+            Ok(key_loaded) => view! {
+                <Show when=move || key_loaded == false fallback=|| view! { "Key already loaded" }>
+                    {
+                        view! {
+                            <input
+                                type="password"
+                                on:input=move |ev| {
+                                    set_name.set(event_target_value(&ev));
+                                }
+
+                                prop:value=password_in_input
+                            />
+                            <button on:click=move |_| set_password.set(password_in_input.get()) {}>
+                                "Submit"
+                            </button>
+                        }
+                    }
+                </Show>
+            }
+            .into_view(),
+            Err(e) => view! {
+                "Key loading error: "
+                {e.to_string()}
+            }
+            .into_view(),
+        }
+    };
+
+    let password_field_or_loading = move || {
+        let ds_info = reloaded_dataset.map(|ds| ds.clone().map(|m| m.key_loaded));
+        match ds_info {
+            Some(key_loaded) => password_field_or_key_already_loaded(key_loaded).into_view(),
+            None => view! { <p>"Loading..."</p> }.into_view(),
+        }
+    };
 
     view! {
         <tr>
             <th>
-                <p>{&current_mount_state.dataset_name}</p>
+                <p>{&*dataset_name_clone}</p>
             </th>
+            <th>{password_field_or_loading}</th>
             <th>
-                <input
-                    type="password"
-                    on:input=move |ev| {
-                        set_name.set(event_target_value(&ev));
-                    }
-
-                    prop:value=password_in_input
-                />
-                <button on:click=move |_| set_password.set(password_in_input.get()) {}>
-                    "Submit"
-                </button>
-            </th>
-            <th>
-                <p>"Password is: " {password}</p>
+                <p>"<Mount button>"</p>
             </th>
         </tr>
     }

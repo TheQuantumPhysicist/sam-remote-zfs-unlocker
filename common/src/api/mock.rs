@@ -83,6 +83,7 @@ impl ZfsRemoteAPI for ApiMock {
             .collect();
         Ok(DatasetList { datasets })
     }
+
     async fn encrypted_unmounted_datasets(&self) -> Result<DatasetsFullMountState, Self::Error> {
         sleep_for_dramatic_effect().await;
 
@@ -97,6 +98,7 @@ impl ZfsRemoteAPI for ApiMock {
             states: datasets_mounted,
         })
     }
+
     async fn load_key(
         &mut self,
         dataset_name: &str,
@@ -121,6 +123,7 @@ impl ZfsRemoteAPI for ApiMock {
             Err(ApiMockError::InvalidEncryptionPassword)
         }
     }
+
     async fn mount_dataset(
         &mut self,
         dataset_name: &str,
@@ -140,6 +143,7 @@ impl ZfsRemoteAPI for ApiMock {
             is_mounted: true,
         })
     }
+
     async fn unload_key(&mut self, dataset_name: &str) -> Result<KeyLoadedResponse, Self::Error> {
         sleep_for_dramatic_effect().await;
 
@@ -162,6 +166,7 @@ impl ZfsRemoteAPI for ApiMock {
             ))
         }
     }
+
     async fn unmount_dataset(
         &mut self,
         dataset_name: &str,
@@ -182,6 +187,22 @@ impl ZfsRemoteAPI for ApiMock {
         })
     }
 
+    async fn dataset_state(
+        &self,
+        dataset_name: &str,
+    ) -> Result<DatasetFullMountState, Self::Error> {
+        sleep_for_dramatic_effect().await;
+
+        let inner = self.inner.lock().expect("Poisoned mutex");
+
+        let dataset_details = inner
+            .state
+            .get(dataset_name)
+            .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
+
+        Ok(dataset_details.state.clone())
+    }
+
     async fn is_permissive(&self) -> Result<bool, Self::Error> {
         sleep_for_dramatic_effect().await;
 
@@ -192,6 +213,6 @@ impl ZfsRemoteAPI for ApiMock {
 }
 
 async fn sleep_for_dramatic_effect() {
-    const SLEEP_DURATION: u32 = 2000;
+    const SLEEP_DURATION: u32 = 1000;
     Sleepr::new(SLEEP_DURATION).sleep().await;
 }

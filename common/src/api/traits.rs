@@ -1,5 +1,6 @@
 use crate::types::{
-    DatasetList, DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse,
+    DatasetFullMountState, DatasetList, DatasetMountedResponse, DatasetsFullMountState,
+    KeyLoadedResponse,
 };
 use async_trait::async_trait;
 
@@ -9,6 +10,8 @@ pub trait ZfsRemoteAPI: Clone {
 
     async fn encrypted_locked_datasets(&self) -> Result<DatasetList, Self::Error>;
     async fn encrypted_unmounted_datasets(&self) -> Result<DatasetsFullMountState, Self::Error>;
+    async fn dataset_state(&self, dataset_name: &str)
+        -> Result<DatasetFullMountState, Self::Error>;
     async fn load_key(
         &mut self,
         dataset_name: &str,
