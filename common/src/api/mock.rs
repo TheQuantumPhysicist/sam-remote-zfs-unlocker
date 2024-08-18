@@ -180,6 +180,8 @@ impl ZfsRemoteAPI for ApiMock {
     }
 
     async fn is_permissive(&self) -> Result<bool, Self::Error> {
+        sleep_for_dramatic_effect().await;
+
         let inner = self.inner.lock().expect("Poisoned mutex");
 
         Ok(inner.permissive)
