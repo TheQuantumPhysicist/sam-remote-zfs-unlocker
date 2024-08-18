@@ -150,15 +150,10 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
 
                                 prop:value=password_in_input
                             />
-                            <button
-                                on:click=move |_| {
-                                    load_key_password.dispatch(password_in_input.get());
-                                    reloaded_dataset.refetch();
-                                }
-                                {}
-                            >
-                                "Submit"
-                            </button>
+                            <button on:click=move |_| {
+                                load_key_password.dispatch(password_in_input.get());
+                                reloaded_dataset.refetch();
+                            }>"Submit"</button>
                         }
                     }
                 </Show>
