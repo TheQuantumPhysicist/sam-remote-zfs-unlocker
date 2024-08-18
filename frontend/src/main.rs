@@ -119,11 +119,12 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         move |_| {
             let api = api.clone();
             let dataset_name = dataset_name.clone();
+            // We wrap with Some, because None is used to trigger reloading after the user submits the password
             async move { api.dataset_state(&dataset_name).map(Some).await }
         },
     );
 
-    // if there's a single argument, just use that
+    // This action takes the action from the user, the click, and sends it to the API to unlock the dataset
     let load_key_password = create_action(move |password: &String| {
         let password = password.clone();
         let mut api_for_pw: A = api_for_pw.clone();
@@ -131,6 +132,7 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         async move { api_for_pw.load_key(&dataset_name, &password).await }
     });
 
+    // This contains the text field + submit button objects, depending on whether the key is loaded or not
     let password_field_or_key_already_loaded = move |key_loaded_result: Result<
         bool,
         <A as ZfsRemoteAPI>::Error,
@@ -166,8 +168,10 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     };
 
     move || {
-        let reloaded_dataset = reloaded_dataset.get();
-        let reloaded_dataset = reloaded_dataset.flatten();
+        // We flatten because we have 2 Option wraps:
+        // 1. The Option from create_local_resource finishing
+        // 2. The Option that we manually added, so that we set it to None when the user clicks on "Submit"
+        let reloaded_dataset = reloaded_dataset.get().flatten();
         let ds_info = reloaded_dataset.map(|ds| ds.clone().map(|m| m.key_loaded));
         match ds_info {
             Some(key_loaded) => password_field_or_key_already_loaded(key_loaded).into_view(),
