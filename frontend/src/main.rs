@@ -212,7 +212,6 @@ fn ZfsUnlocksTable<'a, A: ZfsRemoteHighLevel + 'static>(
 
     view! {
         <table>
-
             <Show when=move || (locked_count > 0) fallback=|| view! { <NothingToUnlock /> }>
                 {unmounted_datasets
                     .states
