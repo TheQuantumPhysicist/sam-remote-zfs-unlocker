@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, time::Duration};
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use async_trait::async_trait;
 
@@ -9,7 +13,7 @@ use crate::types::{
 
 use super::traits::ZfsRemoteAPI;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum ApiMockError {
     #[error("Wrong password")]
     InvalidEncryptionPassword,
@@ -23,12 +27,16 @@ pub struct MockDatasetDetails {
     state: DatasetFullMountState,
     unlock_password: String,
 }
-
-pub struct ApiMock {
+struct ApiMockInner {
     state: BTreeMap<String, MockDatasetDetails>,
     /// Permissive is true when all functionalities are allowed in the API server
     /// when false, only limited functionality exists
     permissive: bool,
+}
+
+#[derive(Clone)]
+pub struct ApiMock {
+    inner: Arc<Mutex<ApiMockInner>>,
 }
 
 impl ApiMock {
@@ -50,7 +58,11 @@ impl ApiMock {
             })
             .collect();
 
-        Self { state, permissive }
+        let result = ApiMockInner { state, permissive };
+
+        Self {
+            inner: Arc::new(result.into()),
+        }
     }
 }
 
@@ -61,7 +73,9 @@ impl ZfsRemoteAPI for ApiMock {
     async fn locked_datasets(&self) -> Result<DatasetList, Self::Error> {
         sleep_for_dramatic_effect().await;
 
-        let datasets = self
+        let inner = self.inner.lock().expect("Poisoned mutex");
+
+        let datasets = inner
             .state
             .iter()
             .filter(|(_ds_name, m)| !m.state.key_loaded)
@@ -72,7 +86,9 @@ impl ZfsRemoteAPI for ApiMock {
     async fn unmounted_datasets(&self) -> Result<DatasetsMountState, Self::Error> {
         sleep_for_dramatic_effect().await;
 
-        let datasets_mounted = self
+        let inner = self.inner.lock().expect("Poisoned mutex");
+
+        let datasets_mounted = inner
             .state
             .iter()
             .map(|(ds_name, m)| (ds_name.to_string(), m.state.is_mounted))
@@ -86,7 +102,9 @@ impl ZfsRemoteAPI for ApiMock {
     ) -> Result<KeyLoadedResponse, Self::Error> {
         sleep_for_dramatic_effect().await;
 
-        let dataset_details = self
+        let mut inner = self.inner.lock().expect("Poisoned mutex");
+
+        let dataset_details = inner
             .state
             .get_mut(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
@@ -107,7 +125,9 @@ impl ZfsRemoteAPI for ApiMock {
     ) -> Result<DatasetMountedResponse, Self::Error> {
         sleep_for_dramatic_effect().await;
 
-        let dataset_details = self
+        let mut inner = self.inner.lock().expect("Poisoned mutex");
+
+        let dataset_details = inner
             .state
             .get_mut(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
@@ -121,7 +141,9 @@ impl ZfsRemoteAPI for ApiMock {
     async fn unload_key(&mut self, dataset_name: &str) -> Result<KeyLoadedResponse, Self::Error> {
         sleep_for_dramatic_effect().await;
 
-        let dataset_details = self
+        let mut inner = self.inner.lock().expect("Poisoned mutex");
+
+        let dataset_details = inner
             .state
             .get_mut(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
@@ -144,7 +166,9 @@ impl ZfsRemoteAPI for ApiMock {
     ) -> Result<DatasetMountedResponse, Self::Error> {
         sleep_for_dramatic_effect().await;
 
-        let dataset_details = self
+        let mut inner = self.inner.lock().expect("Poisoned mutex");
+
+        let dataset_details = inner
             .state
             .get_mut(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
@@ -157,11 +181,13 @@ impl ZfsRemoteAPI for ApiMock {
     }
 
     async fn is_permissive(&self) -> Result<bool, Self::Error> {
-        Ok(self.permissive)
+        let inner = self.inner.lock().expect("Poisoned mutex");
+
+        Ok(inner.permissive)
     }
 }
 
 async fn sleep_for_dramatic_effect() {
-    const SLEEP_TIME: Duration = Duration::from_secs(2);
+    const SLEEP_TIME: Duration = Duration::from_secs(5);
     tokio::time::sleep(SLEEP_TIME).await;
 }

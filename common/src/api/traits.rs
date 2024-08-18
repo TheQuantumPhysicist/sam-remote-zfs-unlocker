@@ -2,8 +2,8 @@ use crate::types::{DatasetList, DatasetMountedResponse, DatasetsMountState, KeyL
 use async_trait::async_trait;
 
 #[async_trait]
-pub trait ZfsRemoteAPI {
-    type Error: std::error::Error;
+pub trait ZfsRemoteAPI: Clone {
+    type Error: std::error::Error + Send + Sync + Clone + 'static;
 
     async fn locked_datasets(&self) -> Result<DatasetList, Self::Error>;
     async fn unmounted_datasets(&self) -> Result<DatasetsMountState, Self::Error>;
