@@ -112,13 +112,12 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     let dataset_name_clone = dataset_name.clone();
     let dataset_name_for_pw = dataset_name.clone();
 
-    let (mount_state, _set_mount_state) = create_signal(Option::<DatasetFullMountState>::None);
 
     let api_for_pw: A = api.clone();
 
     let (password_in_input, set_password_in_input) = create_signal("".to_string());
     let reloaded_dataset = create_local_resource(
-        move || mount_state.get(),
+        move || (),
         move |_| {
             let api = api.clone();
             let dataset_name = dataset_name.clone();
