@@ -98,6 +98,7 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 #[component]
 fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
@@ -133,6 +134,7 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 #[component]
 fn ZfsUnlocksTable<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
