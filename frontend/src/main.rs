@@ -2,6 +2,7 @@ use common::{
     api::{mock::ApiMock, traits::ZfsRemoteHighLevel},
     types::DatasetsMountState,
 };
+use futures::join;
 use leptos::*;
 
 fn make_mock() -> ApiMock {
@@ -38,6 +39,19 @@ pub enum FrontendError {
     WebAPIResponseError(String),
 }
 
+async fn initial_query<A: ZfsRemoteHighLevel + 'static>(
+    api: &A,
+) -> Result<(DatasetsMountState, bool), A::Error> {
+    let result = join!(api.unmounted_datasets(), api.is_permissive());
+
+    match (result.0, result.1) {
+        (Ok(r1), Ok(r2)) => Ok((r1, r2)),
+        (Ok(_), Err(e)) => Err(e),
+        (Err(e), Ok(_)) => Err(e),
+        (Err(e1), Err(_e2)) => Err(e1),
+    }
+}
+
 #[component]
 fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
     // let is_permissive = api.is_permissive();
@@ -46,7 +60,7 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
         || (),
         move |_| {
             let api = api.clone();
-            async move { api.unmounted_datasets().await }
+            async move { initial_query(&api).await }
         },
     );
 
@@ -69,8 +83,8 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
     };
 
     let zfs_table_view = move || {
-        zfs_rows.and_then(|rows| {
-            view! { <ZfsUnlocksTable unmounted_datasets=rows /> }
+        zfs_rows.and_then(|(rows, permissive)| {
+            view! { <ZfsUnlocksTable unmounted_datasets=rows is_permissive=*permissive /> }
         })
     };
 
@@ -115,7 +129,12 @@ fn ZfsPasswordInput(dataset_name: String) -> impl IntoView {
 }
 
 #[component]
-fn ZfsUnlocksTable<'a>(unmounted_datasets: &'a DatasetsMountState) -> impl IntoView {
+fn ZfsUnlocksTable<'a>(
+    unmounted_datasets: &'a DatasetsMountState,
+    is_permissive: bool,
+) -> impl IntoView {
+    let _is_permissive = is_permissive;
+
     let locked_count = unmounted_datasets.datasets_mounted.len();
 
     view! {
