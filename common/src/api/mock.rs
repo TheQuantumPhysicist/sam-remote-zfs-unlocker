@@ -1,7 +1,6 @@
 use std::{
     collections::BTreeMap,
     sync::{Arc, Mutex},
-    time::Duration,
 };
 
 use async_trait::async_trait;
@@ -11,7 +10,7 @@ use crate::types::{
     KeyLoadedResponse,
 };
 
-use super::traits::ZfsRemoteAPI;
+use super::{sleeper::Sleepr, traits::ZfsRemoteAPI};
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ApiMockError {
@@ -188,6 +187,6 @@ impl ZfsRemoteAPI for ApiMock {
 }
 
 async fn sleep_for_dramatic_effect() {
-    const SLEEP_TIME: Duration = Duration::from_secs(2);
-    tokio::time::sleep(SLEEP_TIME).await;
+    const SLEEP_DURATION: u32 = 2000;
+    Sleepr::new(SLEEP_DURATION).sleep().await;
 }
