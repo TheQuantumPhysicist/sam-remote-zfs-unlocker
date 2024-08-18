@@ -110,11 +110,13 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
 ) -> impl IntoView {
     let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
     let dataset_name_clone = dataset_name.clone();
+    let dataset_name_for_pw = dataset_name.clone();
 
     let (mount_state, _set_mount_state) = create_signal(Option::<DatasetFullMountState>::None);
 
-    let (password_in_input, set_name) = create_signal("Controlled".to_string());
-    let (password, set_password) = create_signal("".to_string());
+    let api_for_pw: A = api.clone();
+
+    let (password_in_input, set_password_in_input) = create_signal("".to_string());
     let reloaded_dataset = create_local_resource(
         move || mount_state.get(),
         move |_| {
@@ -123,6 +125,14 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
             async move { api.dataset_state(&*dataset_name).await }
         },
     );
+
+    // if there's a single argument, just use that
+    let load_key_password = create_action(move |password: &String| {
+        let password = password.clone();
+        let mut api_for_pw: A = api_for_pw.clone();
+        let dataset_name = dataset_name_for_pw.clone();
+        async move { api_for_pw.load_key(&dataset_name, &password).await }
+    });
 
     let password_field_or_key_already_loaded = move |key_loaded_result: Result<
         bool,
@@ -136,12 +146,18 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
                             <input
                                 type="password"
                                 on:input=move |ev| {
-                                    set_name.set(event_target_value(&ev));
+                                    set_password_in_input.set(event_target_value(&ev));
                                 }
 
                                 prop:value=password_in_input
                             />
-                            <button on:click=move |_| set_password.set(password_in_input.get()) {}>
+                            <button
+                                on:click=move |_| {
+                                    load_key_password.dispatch(password_in_input.get());
+                                    reloaded_dataset.refetch();
+                                }
+                                {}
+                            >
                                 "Submit"
                             </button>
                         }
