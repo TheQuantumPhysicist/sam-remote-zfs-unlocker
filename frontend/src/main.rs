@@ -78,7 +78,7 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
         <ErrorBoundary fallback>
             <Transition fallback=move || {
                 view! { <div>"Loading (Suspense Fallback)..."</div> }
-            }>{zfs_table_view} <div></div></Transition>
+            }> <div>{zfs_table_view}</div></Transition>
 
         </ErrorBoundary>
     }

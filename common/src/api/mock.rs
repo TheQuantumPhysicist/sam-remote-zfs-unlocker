@@ -188,6 +188,6 @@ impl ZfsRemoteAPI for ApiMock {
 }
 
 async fn sleep_for_dramatic_effect() {
-    const SLEEP_TIME: Duration = Duration::from_secs(5);
+    const SLEEP_TIME: Duration = Duration::from_secs(2);
     tokio::time::sleep(SLEEP_TIME).await;
 }
