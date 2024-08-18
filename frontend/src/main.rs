@@ -104,12 +104,11 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
 
 #[allow(clippy::needless_lifetimes)]
 #[component]
-fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
+fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     current_mount_state: &'a DatasetFullMountState,
 ) -> impl IntoView {
     let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
-    let dataset_name_clone = dataset_name.clone();
     let dataset_name_for_pw = dataset_name.clone();
 
     let api_for_pw: A = api.clone();
@@ -166,7 +165,7 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         }
     };
 
-    let password_field_or_loading = move || {
+    move || {
         let reloaded_dataset = reloaded_dataset.get();
         let reloaded_dataset = reloaded_dataset.flatten();
         let ds_info = reloaded_dataset.map(|ds| ds.clone().map(|m| m.key_loaded));
@@ -174,14 +173,23 @@ fn ZfsPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
             Some(key_loaded) => password_field_or_key_already_loaded(key_loaded).into_view(),
             None => view! { <p>"Loading..."</p> }.into_view(),
         }
-    };
+    }
+}
 
+#[allow(clippy::needless_lifetimes)]
+#[component]
+fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
+    api: A,
+    current_mount_state: &'a DatasetFullMountState,
+) -> impl IntoView {
     view! {
         <tr>
             <th>
-                <p>{&*dataset_name_clone}</p>
+                <p>{&current_mount_state.dataset_name}</p>
             </th>
-            <th>{password_field_or_loading}</th>
+            <th>
+                <ZfsKeyPasswordInput api current_mount_state />
+            </th>
             <th>
                 <p>"<Mount button>"</p>
             </th>
@@ -210,9 +218,7 @@ fn ZfsUnlocksTable<'a, A: ZfsRemoteHighLevel + 'static>(
                     .states
                     .values()
                     .map(|mount_data| {
-                        view! {
-                            <ZfsPasswordInput api=api.clone() current_mount_state=mount_data />
-                        }
+                        view! { <ZfsDatasetRow api=api.clone() current_mount_state=mount_data /> }
                     })
                     .collect_view()}
             </Show>
