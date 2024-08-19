@@ -235,13 +235,47 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     }
 }
 
+enum ZFSTableColumnDefinition {
+    Name,
+    KeyLoadPassword,
+    MountButton,
+}
+
+#[component]
+fn ZfsDatasetTableCell<'a, A: ZfsRemoteHighLevel + 'static>(
+    api: A,
+    current_mount_state: Option<&'a DatasetFullMountState>,
+    dataset_state_resource: Resource<(), Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>>,
+    column: ZFSTableColumnDefinition,
+) -> impl IntoView {
+
+    let api_for_pw = api.clone();
+    let api_for_mount = api.clone();
+
+match column {
+    ZFSTableColumnDefinition::Name => match current_mount_state {
+        Some(r) => view! { <p>{r.dataset_name.to_string()}</p> }.into_view(),
+        None => view! { <p>"Dataset name"</p> }.into_view()
+    },
+    ZFSTableColumnDefinition::KeyLoadPassword => match current_mount_state {
+        Some(r) => view! { <ZfsKeyPasswordInput api=api_for_pw current_mount_state=r dataset_state_resource /> }.into_view(),
+        None => view! { <p>"Key load"</p> }.into_view()
+    },
+    ZFSTableColumnDefinition::MountButton => match current_mount_state {
+        Some(r) => view! { <ZfsMountInput api=api_for_mount current_mount_state=r dataset_state_resource /> }.into_view(),
+        None => view! { <p>"Mount"</p> }.into_view()
+    },
+}
+}
+
 #[allow(clippy::needless_lifetimes)]
 #[component]
 fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
-    current_mount_state: &'a DatasetFullMountState,
+    current_mount_state: Option<&'a DatasetFullMountState>,
 ) -> impl IntoView {
-    let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
+    let dataset_name = current_mount_state.as_ref().map(|m|m.dataset_name.to_string()).unwrap_or("".to_string());
+    let api_for_name = api.clone();
     let api_for_pw = api.clone();
     let api_for_mount = api.clone();
 
@@ -258,13 +292,28 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
     view! {
         <tr>
             <th>
-                <p>{&current_mount_state.dataset_name}</p>
+                <ZfsDatasetTableCell
+                    api=api_for_name
+                    current_mount_state
+                    dataset_state_resource
+                    column=ZFSTableColumnDefinition::Name
+                />
             </th>
             <th>
-                <ZfsKeyPasswordInput api=api_for_pw current_mount_state dataset_state_resource />
+                <ZfsDatasetTableCell
+                    api=api_for_pw
+                    current_mount_state
+                    dataset_state_resource
+                    column=ZFSTableColumnDefinition::KeyLoadPassword
+                />
             </th>
             <th>
-                <ZfsMountInput api=api_for_mount current_mount_state dataset_state_resource />
+                <ZfsDatasetTableCell
+                    api=api_for_mount
+                    current_mount_state
+                    dataset_state_resource
+                    column=ZFSTableColumnDefinition::MountButton
+                />
             </th>
         </tr>
     }
@@ -286,13 +335,19 @@ fn ZfsUnlocksTable<'a, A: ZfsRemoteHighLevel + 'static>(
     view! {
         <div class="zfs-datasets-table-container">
             <table class="zfs-datasets-table">
+
+                <ZfsDatasetRow api=api.clone() current_mount_state=None />
+
                 <Show when=move || (locked_count > 0) fallback=|| view! { <NothingToUnlock /> }>
                     {unmounted_datasets
                         .states
                         .values()
                         .map(|mount_data| {
                             view! {
-                                <ZfsDatasetRow api=api.clone() current_mount_state=mount_data />
+                                <ZfsDatasetRow
+                                    api=api.clone()
+                                    current_mount_state=Some(mount_data)
+                                />
                             }
                         })
                         .collect_view()}
