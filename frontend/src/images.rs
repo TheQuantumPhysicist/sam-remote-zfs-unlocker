@@ -23,8 +23,6 @@ const SPINNING_ANIMS_BASE64: LazyLock<Vec<String>> = LazyLock::new(|| {
         .collect()
 });
 
-// TODO: prepare base64
-
 #[component]
 pub fn RandomLoadingImage() -> impl IntoView {
     let mut rng = rand::thread_rng();

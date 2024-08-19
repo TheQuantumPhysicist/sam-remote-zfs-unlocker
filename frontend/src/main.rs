@@ -1,4 +1,4 @@
-mod loading;
+mod images;
 
 use std::sync::Arc;
 
@@ -10,8 +10,8 @@ use common::{
     types::{DatasetFullMountState, DatasetsFullMountState},
 };
 use futures::FutureExt;
+use images::RandomLoadingImage;
 use leptos::*;
-use loading::RandomLoadingImage;
 
 fn make_mock() -> ApiMock {
     ApiMock::new(
