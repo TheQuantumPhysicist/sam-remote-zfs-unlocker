@@ -13,7 +13,6 @@ use futures::{join, FutureExt};
 use leptos::*;
 use loading::RandomLoadingImage;
 
-
 fn make_mock() -> ApiMock {
     ApiMock::new(
         true,
@@ -40,12 +39,6 @@ fn main() {
     let api_impl = make_mock();
 
     mount_to_body(|| view! { <App api=api_impl /> })
-}
-
-#[derive(thiserror::Error, Clone, Debug)]
-pub enum FrontendError {
-    #[error("Web API returned an error response: {0}")]
-    WebAPIResponseError(String),
 }
 
 async fn initial_query<A: ZfsRemoteHighLevel + 'static>(
