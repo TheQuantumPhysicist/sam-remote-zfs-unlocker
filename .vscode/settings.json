@@ -5,4 +5,7 @@
         "--rustfmt"
     ],
     "editor.formatOnSave": true,
+    "cSpell.words": [
+        "leptos"
+    ],
 }

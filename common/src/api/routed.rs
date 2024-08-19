@@ -108,11 +108,6 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         )
         .await
     }
-
-    async fn is_permissive(&self) -> Result<bool, Self::Error> {
-        let url = format!("{}/is_permissive", self.base_url);
-        do_get_request(&url).await
-    }
 }
 
 async fn do_get_request<J: for<'de> Deserialize<'de>>(url: &str) -> Result<J, ApiError> {

@@ -1,0 +1,11 @@
+# Live configuration
+# [mode.live]
+# base_url = "https://example.com"
+
+# Mock configuration
+[mode.mock]
+datasets_and_passwords = [
+    ["dataset1", "password1"],
+    ["dataset2", "password2"]
+]
+erring_datasets = ["dataset3", "dataset4"]

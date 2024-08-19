@@ -1,13 +1,16 @@
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     sync::{Arc, Mutex},
 };
 
 use async_trait::async_trait;
 
-use crate::types::{
-    DatasetFullMountState, DatasetList, DatasetMountedResponse, DatasetsFullMountState,
-    KeyLoadedResponse,
+use crate::{
+    config::MockSettings,
+    types::{
+        DatasetFullMountState, DatasetList, DatasetMountedResponse, DatasetsFullMountState,
+        KeyLoadedResponse,
+    },
 };
 
 use super::{sleeper::Sleepr, traits::ZfsRemoteAPI};
@@ -20,6 +23,8 @@ pub enum ApiMockError {
     DatasetNotFound(String),
     #[error("Attempted unload key for a busy dataset: {0}")]
     CannotUnlockKeyForMountDataset(String),
+    #[error("Simulated error for dataset: {0}")]
+    SimulatedError(String),
 }
 
 #[derive(Debug, Clone)]
@@ -29,9 +34,8 @@ pub struct MockDatasetDetails {
 }
 struct ApiMockInner {
     state: BTreeMap<String, MockDatasetDetails>,
-    /// Permissive is true when all functionalities are allowed in the API server
-    /// when false, only limited functionality exists
-    permissive: bool,
+    /// Datasets that produce errors on requests
+    erring_datasets: BTreeSet<String>,
 }
 
 #[derive(Clone)]
@@ -40,7 +44,10 @@ pub struct ApiMock {
 }
 
 impl ApiMock {
-    pub fn new(permissive: bool, dataset_names_and_password: Vec<(String, String)>) -> Self {
+    pub fn new(
+        dataset_names_and_password: Vec<(String, String)>,
+        erring_datasets: Vec<String>,
+    ) -> Self {
         let state = dataset_names_and_password
             .into_iter()
             .map(|(ds_name, password)| {
@@ -58,7 +65,48 @@ impl ApiMock {
             })
             .collect();
 
-        let result = ApiMockInner { state, permissive };
+        let erring_datasets = erring_datasets.into_iter().collect();
+
+        let result = ApiMockInner {
+            state,
+            erring_datasets,
+        };
+
+        Self {
+            inner: Arc::new(result.into()),
+        }
+    }
+
+    pub fn new_from_config(config: MockSettings) -> Self {
+        let state = config
+            .datasets_and_passwords
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(ds_name, password)| {
+                (
+                    ds_name.to_string(),
+                    MockDatasetDetails {
+                        state: DatasetFullMountState {
+                            dataset_name: ds_name,
+                            key_loaded: false,
+                            is_mounted: false,
+                        },
+                        unlock_password: password,
+                    },
+                )
+            })
+            .collect();
+
+        let erring_datasets = config
+            .erring_datasets
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
+
+        let result = ApiMockInner {
+            state,
+            erring_datasets,
+        };
 
         Self {
             inner: Arc::new(result.into()),
@@ -80,6 +128,7 @@ impl ZfsRemoteAPI for ApiMock {
             .iter()
             .filter(|(_ds_name, m)| !m.state.key_loaded)
             .map(|(ds_name, _m)| ds_name.to_string())
+            .chain(inner.erring_datasets.clone().into_iter())
             .collect();
         Ok(DatasetList { datasets })
     }
@@ -93,7 +142,18 @@ impl ZfsRemoteAPI for ApiMock {
             .state
             .iter()
             .map(|(ds_name, m)| (ds_name.to_string(), m.state.clone()))
+            .chain(inner.erring_datasets.iter().map(|ds_name| {
+                (
+                    ds_name.to_string(),
+                    DatasetFullMountState {
+                        dataset_name: ds_name.to_string(),
+                        key_loaded: false,
+                        is_mounted: false,
+                    },
+                )
+            }))
             .collect();
+
         Ok(DatasetsFullMountState {
             states: datasets_mounted,
         })
@@ -107,6 +167,10 @@ impl ZfsRemoteAPI for ApiMock {
         sleep_for_dramatic_effect().await;
 
         let mut inner = self.inner.lock().expect("Poisoned mutex");
+
+        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
+            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+        }
 
         let dataset_details = inner
             .state
@@ -132,6 +196,10 @@ impl ZfsRemoteAPI for ApiMock {
 
         let mut inner = self.inner.lock().expect("Poisoned mutex");
 
+        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
+            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+        }
+
         let dataset_details = inner
             .state
             .get_mut(dataset_name)
@@ -148,6 +216,10 @@ impl ZfsRemoteAPI for ApiMock {
         sleep_for_dramatic_effect().await;
 
         let mut inner = self.inner.lock().expect("Poisoned mutex");
+
+        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
+            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+        }
 
         let dataset_details = inner
             .state
@@ -175,6 +247,10 @@ impl ZfsRemoteAPI for ApiMock {
 
         let mut inner = self.inner.lock().expect("Poisoned mutex");
 
+        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
+            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+        }
+
         let dataset_details = inner
             .state
             .get_mut(dataset_name)
@@ -195,20 +271,16 @@ impl ZfsRemoteAPI for ApiMock {
 
         let inner = self.inner.lock().expect("Poisoned mutex");
 
+        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
+            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+        }
+
         let dataset_details = inner
             .state
             .get(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
 
         Ok(dataset_details.state.clone())
-    }
-
-    async fn is_permissive(&self) -> Result<bool, Self::Error> {
-        sleep_for_dramatic_effect().await;
-
-        let inner = self.inner.lock().expect("Poisoned mutex");
-
-        Ok(inner.permissive)
     }
 }
 

@@ -31,7 +31,6 @@ pub trait ZfsRemoteAPI: Clone {
         &mut self,
         dataset_name: &str,
     ) -> Result<DatasetMountedResponse, Self::Error>;
-    async fn is_permissive(&self) -> Result<bool, Self::Error>;
 }
 
 #[async_trait(?Send)]
