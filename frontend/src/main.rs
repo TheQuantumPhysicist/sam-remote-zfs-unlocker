@@ -104,9 +104,69 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
 
 #[allow(clippy::needless_lifetimes)]
 #[component]
+fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
+    api: A,
+    current_mount_state: &'a DatasetFullMountState,
+    dataset_state_resource: Resource<(), Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>>,
+) -> impl IntoView {
+    let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
+    let dataset_name_for_mount = dataset_name.clone();
+
+    // This action takes the action from the user, the click, and sends it to the API to unlock the dataset
+    let mount_dataset = create_action(move |_: &()| {
+        let mut api_for_mount: A = api.clone();
+        let dataset_name = dataset_name_for_mount.clone();
+        async move { api_for_mount.mount_dataset(&dataset_name).await }
+    });
+
+    // This contains the text field + submit button objects, depending on whether the key is loaded or not
+    let mount_field_or_already_mounted = move |mount_state: Result<
+        DatasetFullMountState,
+        <A as ZfsRemoteAPI>::Error,
+    >| {
+        match mount_state {
+            Ok(state) => view! {
+                <Show when=move || state.key_loaded fallback=|| view! { "Load key first" }>
+                    <Show when=move || !state.is_mounted fallback=|| view! { "Dataset is mounted" }>
+                        {
+                            view! {
+                                <button on:click=move |_| {
+                                    mount_dataset.dispatch(());
+                                    dataset_state_resource.set(None);
+                                    dataset_state_resource.refetch();
+                                }>"Mount dataset"</button>
+                            }
+                        }
+                    </Show>
+                </Show>
+            }
+            .into_view(),
+            Err(e) => view! {
+                "Key loading error: "
+                {e.to_string()}
+            }
+            .into_view(),
+        }
+    };
+
+    move || {
+        // We flatten because we have 2 Option wraps:
+        // 1. The Option from create_local_resource finishing
+        // 2. The Option that we manually added, so that we set it to None when the user clicks on "Submit"
+        let ds_info = dataset_state_resource.get().flatten().clone();
+        match ds_info {
+            Some(key_loaded) => mount_field_or_already_mounted(key_loaded).into_view(),
+            None => view! { <p>"Loading..."</p> }.into_view(),
+        }
+    }
+}
+
+#[allow(clippy::needless_lifetimes)]
+#[component]
 fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     current_mount_state: &'a DatasetFullMountState,
+    dataset_state_resource: Resource<(), Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>>,
 ) -> impl IntoView {
     let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
     let dataset_name_for_pw = dataset_name.clone();
@@ -114,15 +174,6 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     let api_for_pw: A = api.clone();
 
     let (password_in_input, set_password_in_input) = create_signal("".to_string());
-    let reloaded_dataset = create_local_resource(
-        move || (),
-        move |_| {
-            let api = api.clone();
-            let dataset_name = dataset_name.clone();
-            // We wrap with Some, because None is used to trigger reloading after the user submits the password
-            async move { api.dataset_state(&dataset_name).map(Some).await }
-        },
-    );
 
     // This action takes the action from the user, the click, and sends it to the API to unlock the dataset
     let load_key_password = create_action(move |password: &String| {
@@ -139,7 +190,7 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     >| {
         match key_loaded_result {
             Ok(key_loaded) => view! {
-                <Show when=move || !key_loaded fallback=|| view! { "Key already loaded" }>
+                <Show when=move || !key_loaded fallback=|| view! { "Key loaded" }>
                     {
                         view! {
                             <input
@@ -151,9 +202,9 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
                             />
                             <button on:click=move |_| {
                                 load_key_password.dispatch(password_in_input.get());
-                                reloaded_dataset.set(None);
-                                reloaded_dataset.refetch();
-                            }>"Submit"</button>
+                                dataset_state_resource.set(None);
+                                dataset_state_resource.refetch();
+                            }>"Load key"</button>
                         }
                     }
                 </Show>
@@ -171,7 +222,7 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         // We flatten because we have 2 Option wraps:
         // 1. The Option from create_local_resource finishing
         // 2. The Option that we manually added, so that we set it to None when the user clicks on "Submit"
-        let reloaded_dataset = reloaded_dataset.get().flatten();
+        let reloaded_dataset = dataset_state_resource.get().flatten();
         let ds_info = reloaded_dataset.map(|ds| ds.clone().map(|m| m.key_loaded));
         match ds_info {
             Some(key_loaded) => password_field_or_key_already_loaded(key_loaded).into_view(),
@@ -186,16 +237,38 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     current_mount_state: &'a DatasetFullMountState,
 ) -> impl IntoView {
+    let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
+    let api_for_pw = api.clone();
+    let api_for_mount = api.clone();
+
+    let dataset_state_resource = create_local_resource(
+        move || (),
+        move |_| {
+            let api = api.clone();
+            let dataset_name = dataset_name.clone();
+            // We wrap with Some, because None is used to trigger reloading after the user submits the password
+            async move { api.dataset_state(&dataset_name).map(Some).await }
+        },
+    );
+
     view! {
         <tr>
             <th>
                 <p>{&current_mount_state.dataset_name}</p>
             </th>
             <th>
-                <ZfsKeyPasswordInput api current_mount_state />
+                <ZfsKeyPasswordInput
+                    api=api_for_pw
+                    current_mount_state
+                    dataset_state_resource=dataset_state_resource
+                />
             </th>
             <th>
-                <p>"<Mount button>"</p>
+                <ZfsMountInput
+                    api=api_for_mount
+                    current_mount_state
+                    dataset_state_resource=dataset_state_resource
+                />
             </th>
         </tr>
     }
