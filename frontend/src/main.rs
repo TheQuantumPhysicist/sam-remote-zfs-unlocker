@@ -261,18 +261,10 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
                 <p>{&current_mount_state.dataset_name}</p>
             </th>
             <th>
-                <ZfsKeyPasswordInput
-                    api=api_for_pw
-                    current_mount_state
-                    dataset_state_resource=dataset_state_resource
-                />
+                <ZfsKeyPasswordInput api=api_for_pw current_mount_state dataset_state_resource />
             </th>
             <th>
-                <ZfsMountInput
-                    api=api_for_mount
-                    current_mount_state
-                    dataset_state_resource=dataset_state_resource
-                />
+                <ZfsMountInput api=api_for_mount current_mount_state dataset_state_resource />
             </th>
         </tr>
     }
