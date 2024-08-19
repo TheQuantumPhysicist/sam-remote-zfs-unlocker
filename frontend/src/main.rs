@@ -9,7 +9,7 @@ use common::{
     },
     types::{DatasetFullMountState, DatasetsFullMountState},
 };
-use futures::{join, FutureExt};
+use futures::FutureExt;
 use leptos::*;
 use loading::RandomLoadingImage;
 
@@ -43,15 +43,10 @@ fn main() {
 
 async fn initial_query<A: ZfsRemoteHighLevel + 'static>(
     api: A,
-) -> Result<(A, DatasetsFullMountState, bool), A::Error> {
-    let result = join!(api.encrypted_unmounted_datasets(), api.is_permissive());
+) -> Result<(A, DatasetsFullMountState), A::Error> {
+    let result = api.encrypted_unmounted_datasets().await;
 
-    match (result.0, result.1) {
-        (Ok(r1), Ok(r2)) => Ok((api, r1, r2)),
-        (Ok(_), Err(e)) => Err(e),
-        (Err(e), Ok(_)) => Err(e),
-        (Err(e1), Err(_e2)) => Err(e1),
-    }
+    result.map(|r| (api, r))
 }
 
 #[component]
@@ -83,8 +78,8 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
     };
 
     let zfs_table_view = move || {
-        zfs_rows.and_then(|(api, rows, permissive)| {
-            view! { <ZfsUnlocksTable api=api.clone() unmounted_datasets=rows is_permissive=*permissive /> }
+        zfs_rows.and_then(|(api, rows)| {
+            view! { <ZfsUnlocksTable api=api.clone() unmounted_datasets=rows /> }
         })
     };
 
@@ -334,10 +329,7 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
 fn ZfsUnlocksTable<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     unmounted_datasets: &'a DatasetsFullMountState,
-    is_permissive: bool,
 ) -> impl IntoView {
-    let _is_permissive = is_permissive;
-
     let locked_count = unmounted_datasets.states.len();
 
     let unmounted_datasets = (*unmounted_datasets).clone();
