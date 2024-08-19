@@ -1,3 +1,5 @@
+mod loading;
+
 use std::sync::Arc;
 
 use common::{
@@ -9,6 +11,8 @@ use common::{
 };
 use futures::{join, FutureExt};
 use leptos::*;
+use loading::RandomLoadingImage;
+
 
 fn make_mock() -> ApiMock {
     ApiMock::new(
@@ -96,7 +100,7 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
             <Transition fallback=move || {
                 view! {
                     <div class="first-loading-page">
-                        <p>"Loading ZFS datasets..."</p>
+                        <RandomLoadingImage />
                     </div>
                 }
             }>
@@ -111,7 +115,10 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
 fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     current_mount_state: &'a DatasetFullMountState,
-    dataset_state_resource: Resource<(), Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>>,
+    dataset_state_resource: Resource<
+        (),
+        Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>,
+    >,
 ) -> impl IntoView {
     let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
     let dataset_name_for_mount = dataset_name.clone();
@@ -124,11 +131,9 @@ fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
     });
 
     // This contains the text field + submit button objects, depending on whether the key is loaded or not
-    let mount_field_or_already_mounted = move |mount_state: Result<
-        DatasetFullMountState,
-        <A as ZfsRemoteAPI>::Error,
-    >| {
-        match mount_state {
+    let mount_field_or_already_mounted =
+        move |mount_state: Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>| {
+            match mount_state {
             Ok(state) => view! {
                 <Show when=move || state.key_loaded fallback=|| view! { "Load key first" }>
                     <Show when=move || !state.is_mounted fallback=|| view! { "Dataset is mounted" }>
@@ -151,7 +156,7 @@ fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
             }
             .into_view(),
         }
-    };
+        };
 
     move || {
         // We flatten because we have 2 Option wraps:
@@ -160,7 +165,7 @@ fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
         let ds_info = dataset_state_resource.get().flatten().clone();
         match ds_info {
             Some(key_loaded) => mount_field_or_already_mounted(key_loaded).into_view(),
-            None => view! { <p>"Loading..."</p> }.into_view(),
+            None => view! { <RandomLoadingImage /> }.into_view(),
         }
     }
 }
@@ -170,7 +175,10 @@ fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
 fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     current_mount_state: &'a DatasetFullMountState,
-    dataset_state_resource: Resource<(), Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>>,
+    dataset_state_resource: Resource<
+        (),
+        Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>,
+    >,
 ) -> impl IntoView {
     let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
     let dataset_name_for_pw = dataset_name.clone();
@@ -230,7 +238,7 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         let ds_info = reloaded_dataset.map(|ds| ds.clone().map(|m| m.key_loaded));
         match ds_info {
             Some(key_loaded) => password_field_or_key_already_loaded(key_loaded).into_view(),
-            None => view! { <p>"Loading..."</p> }.into_view(),
+            None => view! { <RandomLoadingImage /> }.into_view(),
         }
     }
 }
@@ -245,14 +253,16 @@ enum ZFSTableColumnDefinition {
 fn ZfsDatasetTableCell<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     current_mount_state: Option<&'a DatasetFullMountState>,
-    dataset_state_resource: Resource<(), Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>>,
+    dataset_state_resource: Resource<
+        (),
+        Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>,
+    >,
     column: ZFSTableColumnDefinition,
 ) -> impl IntoView {
-
     let api_for_pw = api.clone();
     let api_for_mount = api.clone();
 
-match column {
+    match column {
     ZFSTableColumnDefinition::Name => match current_mount_state {
         Some(r) => view! {
             <div class="table-cell-dataset-name">
@@ -278,7 +288,10 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     current_mount_state: Option<&'a DatasetFullMountState>,
 ) -> impl IntoView {
-    let dataset_name = current_mount_state.as_ref().map(|m|m.dataset_name.to_string()).unwrap_or("".to_string());
+    let dataset_name = current_mount_state
+        .as_ref()
+        .map(|m| m.dataset_name.to_string())
+        .unwrap_or("".to_string());
     let api_for_name = api.clone();
     let api_for_pw = api.clone();
     let api_for_mount = api.clone();

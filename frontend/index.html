@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
-  <head></head>
+  <head>
+    <link data-trunk rel="rust" data-wasm-opt="z" />
+    <link data-trunk rel="icon" type="image/ico" href="/public/favicon.ico" />
+  </head>
   <body></body>
 </html>
 <style>
@@ -17,11 +20,13 @@
   .zfs-datasets-table {
       margin: auto;
   }
+
   .first-loading-page {
         text-align: center;
   }
+
   .table-cell-dataset-name {
-      {% comment %} text-align: left; {% endcomment %}
+      text-align: left;
   }
 
   table {
