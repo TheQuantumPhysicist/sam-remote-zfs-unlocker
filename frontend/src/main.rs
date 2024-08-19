@@ -339,23 +339,25 @@ fn ZfsUnlocksTable<'a, A: ZfsRemoteHighLevel + 'static>(
     view! {
         <div class="zfs-datasets-table-container">
             <table class="zfs-datasets-table">
-
-                <ZfsDatasetRow api=api.clone() current_mount_state=None />
-
-                <Show when=move || (locked_count > 0) fallback=|| view! { <NothingToUnlock /> }>
-                    {unmounted_datasets
-                        .states
-                        .values()
-                        .map(|mount_data| {
-                            view! {
-                                <ZfsDatasetRow
-                                    api=api.clone()
-                                    current_mount_state=Some(mount_data)
-                                />
-                            }
-                        })
-                        .collect_view()}
-                </Show>
+                <thead>
+                    <ZfsDatasetRow api=api.clone() current_mount_state=None />
+                </thead>
+                <tbody>
+                    <Show when=move || (locked_count > 0) fallback=|| view! { <NothingToUnlock /> }>
+                        {unmounted_datasets
+                            .states
+                            .values()
+                            .map(|mount_data| {
+                                view! {
+                                    <ZfsDatasetRow
+                                        api=api.clone()
+                                        current_mount_state=Some(mount_data)
+                                    />
+                                }
+                            })
+                            .collect_view()}
+                    </Show>
+                </tbody>
             </table>
         </div>
     }

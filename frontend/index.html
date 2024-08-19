@@ -4,6 +4,13 @@
   <body></body>
 </html>
 <style>
+  body {
+    font-family: Arial, sans-serif; /* Clean, sans-serif font */
+    margin: 20px; /* Space around the page */
+    background-color: #fefefe; /* Light gray background for the page */
+    color: #333; /* Dark text color for readability */
+  }
+
   .zfs-datasets-table-container {
   }
 
@@ -14,7 +21,7 @@
         text-align: center;
   }
   .table-cell-dataset-name {
-      text-align: left;
+      {% comment %} text-align: left; {% endcomment %}
   }
 
   table {
@@ -22,11 +29,21 @@
       border-collapse: collapse; /* Removes space between cells */
   }
 
+  thead th {
+    background-color: #d0d0d0; /* Light gray background */
+    color: #333; /* Dark gray text */
+    font-weight: bold; /* Bold text */
+    text-transform: uppercase; /* Uppercase text */
+    border: 1px solid #ccc; /* Light border for a cleaner look */
+    border-bottom: 2px solid #999; /* Thicker bottom border */
+    padding: 12px; /* Increased padding */
+  }
+
   th,
   td {
-      padding: 8px;
-      {% comment %} text-align: left; {% endcomment %}
-      border: 4px solid #ddd; /* Adds border to cells */
+    padding: 8px;
+    {% comment %} text-align: left; {% endcomment %}
+    {% comment %} border-right: 1px solid #ccc; /* Thin border between columns */ {% endcomment %}
   }
 
   th {
@@ -37,10 +54,17 @@
       background-color: #f9f9f9; /* Adds a light gray background to even rows */
   }
 
+  tr {
+    border-bottom: 3px solid #000; /* Thicker border between rows */
+  }
+
   tr:hover {
       background-color: #ddd; /* Adds a hover effect */
   }
 
+  tr:last-child {
+    border-bottom: 1px solid; /* Remove border from the last row */
+  }
 
   p, span, h1, h2, h3, h4, h5, h6 {
       font-family: Arial, sans-serif; /* Font family */
