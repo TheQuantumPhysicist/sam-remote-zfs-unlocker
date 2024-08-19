@@ -94,7 +94,11 @@ fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
     view! {
         <ErrorBoundary fallback>
             <Transition fallback=move || {
-                view! { <div>"Loading ZFS datasets..."</div> }
+                view! {
+                    <div class="first-loading-page">
+                        <p>"Loading ZFS datasets..."</p>
+                    </div>
+                }
             }>
                 <div>{zfs_table_view}</div>
             </Transition>
@@ -288,17 +292,21 @@ fn ZfsUnlocksTable<'a, A: ZfsRemoteHighLevel + 'static>(
     let unmounted_datasets = (*unmounted_datasets).clone();
 
     view! {
-        <table>
-            <Show when=move || (locked_count > 0) fallback=|| view! { <NothingToUnlock /> }>
-                {unmounted_datasets
-                    .states
-                    .values()
-                    .map(|mount_data| {
-                        view! { <ZfsDatasetRow api=api.clone() current_mount_state=mount_data /> }
-                    })
-                    .collect_view()}
-            </Show>
-        </table>
+        <div class="zfs-datasets-table-container">
+            <table class="zfs-datasets-table">
+                <Show when=move || (locked_count > 0) fallback=|| view! { <NothingToUnlock /> }>
+                    {unmounted_datasets
+                        .states
+                        .values()
+                        .map(|mount_data| {
+                            view! {
+                                <ZfsDatasetRow api=api.clone() current_mount_state=mount_data />
+                            }
+                        })
+                        .collect_view()}
+                </Show>
+            </table>
+        </div>
     }
 }
 
