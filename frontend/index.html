@@ -6,10 +6,80 @@
 <style>
   .zfs-datasets-table-container {
   }
+
   .zfs-datasets-table {
-    margin: auto;
+      margin: auto;
   }
   .first-loading-page {
-    text-align: center;
+        text-align: center;
+  }
+  .table-cell-dataset-name {
+      text-align: left;
+  }
+
+  table {
+      {% comment %} width: 100%; {% endcomment %}
+      border-collapse: collapse; /* Removes space between cells */
+  }
+
+  th,
+  td {
+      padding: 8px;
+      {% comment %} text-align: left; {% endcomment %}
+      border: 4px solid #ddd; /* Adds border to cells */
+  }
+
+  th {
+      background-color: #f2f2f2; /* Adds a light gray background to headers */
+  }
+
+  tr:nth-child(even) {
+      background-color: #f9f9f9; /* Adds a light gray background to even rows */
+  }
+
+  tr:hover {
+      background-color: #ddd; /* Adds a hover effect */
+  }
+
+
+  p, span, h1, h2, h3, h4, h5, h6 {
+      font-family: Arial, sans-serif; /* Font family */
+      color: #333; /* Text color */
+      line-height: 1.6; /* Line height for readability */
+  }
+
+  h1 {
+      font-size: 2em; /* Larger font size for headers */
+  }
+
+  p {
+      font-size: 1em; /* Regular font size for paragraphs */
+  }
+
+  /* Text Fields */
+  input[type="text"], input[type="password"] {
+      {% comment %} width: 100%; /* Full width */ {% endcomment %}
+      padding: 0 10px; /* Adjust padding for horizontal spacing */
+      height: 2em; /* Set height to match button */
+      line-height: 2em; /* Align text vertically */
+      box-sizing: border-box; /* Ensure padding doesn't affect width */
+      border: 1px solid #ccc; /* Light gray border */
+      border-radius: 4px; /* Rounded corners */
+  }
+
+  /* Buttons */
+  button {
+      background-color: #008CBA; /* Blue background */
+      color: white; /* White text */
+      padding: 0 20px; /* Adjust padding for horizontal spacing */
+      border: none; /* No border */
+      border-radius: 5px; /* Rounded corners */
+      cursor: pointer; /* Pointer cursor on hover */
+      height: 2em; /* Match the height of text fields */
+      line-height: 2em; /* Align text vertically */
+  }
+
+  button:hover {
+      background-color: #007B9E; /* Darker blue on hover */
   }
 </style>

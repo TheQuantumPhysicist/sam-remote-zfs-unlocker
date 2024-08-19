@@ -254,7 +254,11 @@ fn ZfsDatasetTableCell<'a, A: ZfsRemoteHighLevel + 'static>(
 
 match column {
     ZFSTableColumnDefinition::Name => match current_mount_state {
-        Some(r) => view! { <p>{r.dataset_name.to_string()}</p> }.into_view(),
+        Some(r) => view! {
+            <div class="table-cell-dataset-name">
+                <p>{r.dataset_name.to_string()}</p>
+            </div>
+        }.into_view(),
         None => view! { <p>"Dataset name"</p> }.into_view()
     },
     ZFSTableColumnDefinition::KeyLoadPassword => match current_mount_state {
