@@ -290,7 +290,7 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
             let api = api.clone();
             let dataset_name = dataset_name.clone();
             // We wrap with Some, because None is used to trigger reloading after the user submits the password
-            async move { api.dataset_state(&dataset_name).map(Some).await }
+            async move { api.encrypted_dataset_state(&dataset_name).map(Some).await }
         },
     );
 

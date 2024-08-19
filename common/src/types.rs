@@ -35,3 +35,8 @@ pub struct DatasetFullMountState {
 pub struct DatasetsFullMountState {
     pub states: BTreeMap<String, DatasetFullMountState>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DatasetBody {
+    pub dataset_name: String,
+}

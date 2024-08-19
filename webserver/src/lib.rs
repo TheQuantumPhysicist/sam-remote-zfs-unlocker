@@ -3,30 +3,24 @@ pub mod state;
 use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
-    extract::State,
+    extract::{Path, State},
     response::{IntoResponse, Response},
     routing::{get, post, IntoMakeService},
     serve::Serve,
     Json, Router,
 };
 use common::types::{
-    DatasetFullMountState, DatasetList, DatasetMountedResponse, DatasetsFullMountState,
-    DatasetsMountState, KeyLoadedResponse,
+    DatasetBody, DatasetFullMountState, DatasetList, DatasetMountedResponse,
+    DatasetsFullMountState, DatasetsMountState, KeyLoadedResponse,
 };
 use hyper::{HeaderMap, StatusCode};
 use sam_zfs_unlocker::{
     zfs_is_dataset_mounted, zfs_is_key_loaded, zfs_load_key, zfs_mount_dataset, zfs_unload_key,
     zfs_unmount_dataset, ZfsError,
 };
-use serde::Deserialize;
 use serde_json::json;
 use state::ServerState;
 use tokio::{net::TcpListener, sync::Mutex};
-
-#[derive(Debug, Deserialize)]
-struct DatasetBody {
-    dataset_name: String,
-}
 
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::BAD_REQUEST, "Bad request")
@@ -218,11 +212,9 @@ async fn all_datasets_mount_state(
     }))
 }
 
-/// Returns a list of the encrypted datasets, and whether they're mounted, and whether their keys are loaded.
-/// In permissive mode, all encrypted datasets are returns. In non-permissive mode, only unmounted are returned.
-async fn encrypted_unmounted_datasets(
-    State(state): State<Arc<Mutex<ServerState>>>,
-) -> Result<impl IntoResponse, Error> {
+async fn get_encrypted_datasets_state(
+    state: Arc<Mutex<ServerState>>,
+) -> Result<DatasetsFullMountState, Error> {
     let mount_states = sam_zfs_unlocker::zfs_list_unmounted_datasets()?;
 
     let permissive = state.lock().await.is_permissive();
@@ -242,9 +234,34 @@ async fn encrypted_unmounted_datasets(
         .filter(|(_ds_name, m)| if permissive { true } else { !m.is_mounted })
         .collect::<BTreeMap<_, _>>();
 
-    Ok(Json::from(DatasetsFullMountState {
+    Ok(DatasetsFullMountState {
         states: mount_states,
-    }))
+    })
+}
+
+/// Returns a list of the encrypted datasets, and whether they're mounted, and whether their keys are loaded.
+/// In permissive mode, all encrypted datasets are returns. In non-permissive mode, only unmounted are returned.
+async fn encrypted_unmounted_datasets(
+    State(state): State<Arc<Mutex<ServerState>>>,
+) -> Result<impl IntoResponse, Error> {
+    let result = get_encrypted_datasets_state(state).await?;
+
+    Ok(Json::from(result))
+}
+
+/// Returns the given encrypted dataset state, and whether it's mounted, and whether their keys is loaded.
+async fn encrypted_dataset_state(
+    Path(dataset_name): Path<String>,
+    State(state): State<Arc<Mutex<ServerState>>>,
+) -> Result<impl IntoResponse, Error> {
+    let all_datasets_states = get_encrypted_datasets_state(state).await?;
+
+    let result = all_datasets_states
+        .states
+        .get(&dataset_name)
+        .ok_or(Error::DatasetNotFound(dataset_name.to_string()))?;
+
+    Ok(Json::from(result.clone()))
 }
 
 /// Returns true if permissive mode is enabled
@@ -262,6 +279,10 @@ fn routes() -> Router<Arc<Mutex<ServerState>>> {
         .route(
             "/encrypted_unmounted_datasets",
             get(encrypted_unmounted_datasets),
+        )
+        .route(
+            "/encrypted_dataset_state/:dataset_name",
+            get(encrypted_dataset_state),
         )
         .route("/load_key", post(load_key))
         .route("/mount", post(mount_dataset))

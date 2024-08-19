@@ -66,7 +66,7 @@ impl ApiMock {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl ZfsRemoteAPI for ApiMock {
     type Error = ApiMockError;
 
@@ -187,7 +187,7 @@ impl ZfsRemoteAPI for ApiMock {
         })
     }
 
-    async fn dataset_state(
+    async fn encrypted_dataset_state(
         &self,
         dataset_name: &str,
     ) -> Result<DatasetFullMountState, Self::Error> {
