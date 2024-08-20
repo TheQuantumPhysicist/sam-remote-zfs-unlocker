@@ -18,11 +18,11 @@ members = [
    "common",
    "frontend",
    "webserver-lib",
-   "webserver-runner",
+   "webserver",
 ]
 
 default-members = [
-    "webserver-runner",
+    "webserver",
 ]
 
 [dependencies]
