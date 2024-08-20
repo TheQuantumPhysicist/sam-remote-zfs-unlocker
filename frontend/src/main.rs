@@ -3,7 +3,10 @@ mod zfs_unlocker;
 
 use std::{str::FromStr, sync::LazyLock};
 
-use common::{api::mock::ApiMock, config::WebPageConfig};
+use common::{
+    api::{mock::ApiMock, routed::ApiRouteImpl},
+    config::WebPageConfig,
+};
 use leptos::*;
 use zfs_unlocker::App;
 
@@ -14,19 +17,17 @@ const CONFIG: LazyLock<WebPageConfig> = LazyLock::new(|| {
         .unwrap_or_else(|e| panic!("Failed to find config file. Error: {e}"))
 });
 
-fn make_api() -> ApiMock {
-    // leptos_dom::logging::console_log("Log something");
-
-    match &CONFIG.mode {
-        common::config::LiveOrMock::Live(_) => todo!(),
-        common::config::LiveOrMock::Mock(m) => ApiMock::new_from_config(m.clone()),
-    }
-}
-
 fn main() {
     console_error_panic_hook::set_once();
 
-    let api_impl = make_api();
+    // leptos_dom::logging::console_log("Log something");
 
-    mount_to_body(|| view! { <App api=api_impl /> })
+    match CONFIG.mode.clone() {
+        common::config::LiveOrMock::Live(s) => {
+            mount_to_body(move || view! { <App api=ApiRouteImpl::new_from_config(s.clone()) /> });
+        }
+        common::config::LiveOrMock::Mock(m) => {
+            mount_to_body(move || view! { <App api=ApiMock::new_from_config(m.clone()) /> });
+        }
+    }
 }

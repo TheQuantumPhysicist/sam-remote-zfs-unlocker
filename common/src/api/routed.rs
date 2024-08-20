@@ -4,9 +4,12 @@ use super::traits::HttpRequest;
 use async_trait::async_trait;
 use serde::Deserialize;
 
-use crate::types::{
-    DatasetBody, DatasetFullMountState, DatasetList, DatasetMountedResponse,
-    DatasetsFullMountState, KeyLoadedResponse,
+use crate::{
+    config::LiveSettings,
+    types::{
+        DatasetBody, DatasetFullMountState, DatasetList, DatasetMountedResponse,
+        DatasetsFullMountState, KeyLoadedResponse,
+    },
 };
 
 use super::{traits::ZfsRemoteAPI, wasm_request::WasmRequest};
@@ -22,6 +25,14 @@ pub enum ApiError {
 #[derive(Debug, Clone)]
 pub struct ApiRouteImpl {
     base_url: String,
+}
+
+impl ApiRouteImpl {
+    pub fn new_from_config(settings: LiveSettings) -> Self {
+        Self {
+            base_url: settings.base_url,
+        }
+    }
 }
 
 #[async_trait(?Send)]

@@ -9,7 +9,7 @@ pub struct MockSettings {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LiveSettings {
-    base_url: String,
+    pub base_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
