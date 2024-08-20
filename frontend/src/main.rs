@@ -160,6 +160,29 @@ fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
 
 #[allow(clippy::needless_lifetimes)]
 #[component]
+fn ZfsRefreshInput<A: ZfsRemoteHighLevel + 'static>(
+    api: A,
+    dataset_state_resource: Resource<
+        (),
+        Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>,
+    >,
+) -> impl IntoView {
+    let _api = api;
+
+    let mount_field_or_already_mounted = move || {
+        view! {
+            <button on:click=move |_| {
+                dataset_state_resource.set(None);
+                dataset_state_resource.refetch();
+            }>"Refresh"</button>
+        }
+    };
+
+    mount_field_or_already_mounted
+}
+
+#[allow(clippy::needless_lifetimes)]
+#[component]
 fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     current_mount_state: &'a DatasetFullMountState,
@@ -235,6 +258,7 @@ enum ZFSTableColumnDefinition {
     Name,
     KeyLoadPassword,
     MountButton,
+    RefreshButton,
 }
 
 #[component]
@@ -266,6 +290,10 @@ fn ZfsDatasetTableCell<'a, A: ZfsRemoteHighLevel + 'static>(
     ZFSTableColumnDefinition::MountButton => match current_mount_state {
         Some(r) => view! { <ZfsMountInput api=api_for_mount current_mount_state=r dataset_state_resource /> }.into_view(),
         None => view! { <p>"Mount"</p> }.into_view()
+    }
+    ZFSTableColumnDefinition::RefreshButton => match current_mount_state {
+        Some(_) => view! { <ZfsRefreshInput api=api_for_mount dataset_state_resource /> }.into_view(),
+        None => view! { <p>"Refresh"</p> }.into_view()
     },
 }
 }
@@ -283,6 +311,7 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
     let api_for_name = api.clone();
     let api_for_pw = api.clone();
     let api_for_mount = api.clone();
+    let api_for_refresh = api.clone();
 
     let dataset_state_resource = create_local_resource(
         move || (),
@@ -318,6 +347,14 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
                     current_mount_state
                     dataset_state_resource
                     column=ZFSTableColumnDefinition::MountButton
+                />
+            </th>
+            <th>
+                <ZfsDatasetTableCell
+                    api=api_for_refresh
+                    current_mount_state
+                    dataset_state_resource
+                    column=ZFSTableColumnDefinition::RefreshButton
                 />
             </th>
         </tr>

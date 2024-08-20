@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     sync::{Arc, Mutex},
 };
 
@@ -31,11 +31,11 @@ pub enum ApiMockError {
 pub struct MockDatasetDetails {
     state: DatasetFullMountState,
     unlock_password: String,
+    // While doing requests, this is a number [0,1] that will be used to randomly generate errors
+    error_probability: f32,
 }
 struct ApiMockInner {
     state: BTreeMap<String, MockDatasetDetails>,
-    /// Datasets that produce errors on requests
-    erring_datasets: BTreeSet<String>,
 }
 
 #[derive(Clone)]
@@ -44,13 +44,10 @@ pub struct ApiMock {
 }
 
 impl ApiMock {
-    pub fn new(
-        dataset_names_and_password: Vec<(String, String)>,
-        erring_datasets: Vec<String>,
-    ) -> Self {
+    pub fn new(dataset_names_and_password: Vec<(String, String, f32)>) -> Self {
         let state = dataset_names_and_password
             .into_iter()
-            .map(|(ds_name, password)| {
+            .map(|(ds_name, password, err_prob)| {
                 (
                     ds_name.to_string(),
                     MockDatasetDetails {
@@ -60,17 +57,13 @@ impl ApiMock {
                             is_mounted: false,
                         },
                         unlock_password: password,
+                        error_probability: err_prob,
                     },
                 )
             })
             .collect();
 
-        let erring_datasets = erring_datasets.into_iter().collect();
-
-        let result = ApiMockInner {
-            state,
-            erring_datasets,
-        };
+        let result = ApiMockInner { state };
 
         Self {
             inner: Arc::new(result.into()),
@@ -82,7 +75,7 @@ impl ApiMock {
             .datasets_and_passwords
             .unwrap_or_default()
             .into_iter()
-            .map(|(ds_name, password)| {
+            .map(|(ds_name, password, err_prob)| {
                 (
                     ds_name.to_string(),
                     MockDatasetDetails {
@@ -92,21 +85,13 @@ impl ApiMock {
                             is_mounted: false,
                         },
                         unlock_password: password,
+                        error_probability: err_prob,
                     },
                 )
             })
             .collect();
 
-        let erring_datasets = config
-            .erring_datasets
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
-
-        let result = ApiMockInner {
-            state,
-            erring_datasets,
-        };
+        let result = ApiMockInner { state };
 
         Self {
             inner: Arc::new(result.into()),
@@ -128,7 +113,6 @@ impl ZfsRemoteAPI for ApiMock {
             .iter()
             .filter(|(_ds_name, m)| !m.state.key_loaded)
             .map(|(ds_name, _m)| ds_name.to_string())
-            .chain(inner.erring_datasets.clone().into_iter())
             .collect();
         Ok(DatasetList { datasets })
     }
@@ -142,16 +126,6 @@ impl ZfsRemoteAPI for ApiMock {
             .state
             .iter()
             .map(|(ds_name, m)| (ds_name.to_string(), m.state.clone()))
-            .chain(inner.erring_datasets.iter().map(|ds_name| {
-                (
-                    ds_name.to_string(),
-                    DatasetFullMountState {
-                        dataset_name: ds_name.to_string(),
-                        key_loaded: false,
-                        is_mounted: false,
-                    },
-                )
-            }))
             .collect();
 
         Ok(DatasetsFullMountState {
@@ -168,14 +142,14 @@ impl ZfsRemoteAPI for ApiMock {
 
         let mut inner = self.inner.lock().expect("Poisoned mutex");
 
-        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
-            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
-        }
-
         let dataset_details = inner
             .state
             .get_mut(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
+
+        if random_0_to_1_float() < dataset_details.error_probability {
+            return Err(ApiMockError::SimulatedError(dataset_name.to_string()));
+        }
 
         if password == dataset_details.unlock_password {
             dataset_details.state.key_loaded = true;
@@ -196,16 +170,14 @@ impl ZfsRemoteAPI for ApiMock {
 
         let mut inner = self.inner.lock().expect("Poisoned mutex");
 
-        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
-            if random_0_to_1_float() < ERROR_PROBABILITY {
-                return Err(ApiMockError::SimulatedError(ds_name.to_string()));
-            }
-        }
-
         let dataset_details = inner
             .state
             .get_mut(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
+
+        if random_0_to_1_float() < dataset_details.error_probability {
+            return Err(ApiMockError::SimulatedError(dataset_name.to_string()));
+        }
 
         dataset_details.state.is_mounted = true;
         Ok(DatasetMountedResponse {
@@ -219,16 +191,14 @@ impl ZfsRemoteAPI for ApiMock {
 
         let mut inner = self.inner.lock().expect("Poisoned mutex");
 
-        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
-            if random_0_to_1_float() < ERROR_PROBABILITY {
-                return Err(ApiMockError::SimulatedError(ds_name.to_string()));
-            }
-        }
-
         let dataset_details = inner
             .state
             .get_mut(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
+
+        if random_0_to_1_float() < dataset_details.error_probability {
+            return Err(ApiMockError::SimulatedError(dataset_name.to_string()));
+        }
 
         if !dataset_details.state.is_mounted {
             dataset_details.state.key_loaded = false;
@@ -251,16 +221,14 @@ impl ZfsRemoteAPI for ApiMock {
 
         let mut inner = self.inner.lock().expect("Poisoned mutex");
 
-        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
-            if random_0_to_1_float() < ERROR_PROBABILITY {
-                return Err(ApiMockError::SimulatedError(ds_name.to_string()));
-            }
-        }
-
         let dataset_details = inner
             .state
             .get_mut(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
+
+        if random_0_to_1_float() < dataset_details.error_probability {
+            return Err(ApiMockError::SimulatedError(dataset_name.to_string()));
+        }
 
         dataset_details.state.is_mounted = false;
         Ok(DatasetMountedResponse {
@@ -277,16 +245,14 @@ impl ZfsRemoteAPI for ApiMock {
 
         let inner = self.inner.lock().expect("Poisoned mutex");
 
-        if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
-            if random_0_to_1_float() < ERROR_PROBABILITY {
-                return Err(ApiMockError::SimulatedError(ds_name.to_string()));
-            }
-        }
-
         let dataset_details = inner
             .state
             .get(dataset_name)
             .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
+
+        if random_0_to_1_float() < dataset_details.error_probability {
+            return Err(ApiMockError::SimulatedError(dataset_name.to_string()));
+        }
 
         Ok(dataset_details.state.clone())
     }
@@ -301,5 +267,3 @@ fn random_0_to_1_float() -> f32 {
     let mut rng = rand::thread_rng();
     rand::Rng::gen_range(&mut rng, 0.0..1.0)
 }
-
-const ERROR_PROBABILITY: f32 = 0.5;
