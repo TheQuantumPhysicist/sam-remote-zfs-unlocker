@@ -7,8 +7,8 @@ use serde::Deserialize;
 use crate::{
     config::LiveSettings,
     types::{
-        DatasetBody, DatasetFullMountState, DatasetList, DatasetMountedResponse,
-        DatasetsFullMountState, KeyLoadedResponse,
+        DatasetBody, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
+        KeyLoadedResponse,
     },
 };
 
@@ -39,13 +39,8 @@ impl ApiRouteImpl {
 impl ZfsRemoteAPI for ApiRouteImpl {
     type Error = ApiError;
 
-    async fn encrypted_locked_datasets(&self) -> Result<DatasetList, Self::Error> {
-        let url = format!("{}/zfs/encrypted_locked_datasets", self.base_url);
-        do_get_request(&url).await
-    }
-
-    async fn encrypted_unmounted_datasets(&self) -> Result<DatasetsFullMountState, Self::Error> {
-        let url = format!("{}/zfs/encrypted_unmounted_datasets", self.base_url);
+    async fn encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error> {
+        let url = format!("{}/zfs/encrypted_datasets_state", self.base_url);
         do_get_request(&url).await
     }
 
@@ -87,33 +82,6 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         dataset_name: &str,
     ) -> Result<DatasetMountedResponse, Self::Error> {
         let url = format!("{}/zfs/mount", self.base_url);
-        do_post_request(
-            &url,
-            Some(DatasetBody {
-                dataset_name: dataset_name.to_string(),
-            }),
-            [].into_iter().collect(),
-        )
-        .await
-    }
-
-    async fn unload_key(&mut self, dataset_name: &str) -> Result<KeyLoadedResponse, Self::Error> {
-        let url = format!("{}/zfs/unload_key", self.base_url);
-        do_post_request(
-            &url,
-            Some(DatasetBody {
-                dataset_name: dataset_name.to_string(),
-            }),
-            [].into_iter().collect(),
-        )
-        .await
-    }
-
-    async fn unmount_dataset(
-        &mut self,
-        dataset_name: &str,
-    ) -> Result<DatasetMountedResponse, Self::Error> {
-        let url = format!("{}/unmount", self.base_url);
         do_post_request(
             &url,
             Some(DatasetBody {

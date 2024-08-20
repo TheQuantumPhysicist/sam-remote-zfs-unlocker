@@ -11,8 +11,8 @@ use axum::{
     Json, Router,
 };
 use common::types::{
-    DatasetBody, DatasetFullMountState, DatasetList, DatasetMountedResponse,
-    DatasetsFullMountState, KeyLoadedResponse,
+    DatasetBody, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
+    KeyLoadedResponse,
 };
 use hyper::{HeaderMap, Method, StatusCode};
 use run_options::server_run_options::ServerRunOptions;
@@ -111,28 +111,6 @@ async fn load_key(
     }))
 }
 
-async fn encrypted_locked_datasets(
-    State(_): State<Arc<Mutex<ServerState>>>,
-) -> Result<impl IntoResponse, Error> {
-    let mounts = sam_zfs_unlocker::zfs_list_datasets_mountpoints()?;
-
-    let key_loaded_all = mounts
-        .keys()
-        .map(|m| zfs_is_key_loaded(m).map(|v| (m, v)))
-        .collect::<Result<Vec<_>, _>>()?;
-
-    let key_not_loaded = key_loaded_all
-        .into_iter()
-        .filter_map(|(ds, key_loaded)| key_loaded.map(|kl| (ds.clone(), kl)))
-        .filter(|(_, key_loaded)| !(*key_loaded))
-        .map(|(ds, _)| ds)
-        .collect::<Vec<_>>();
-
-    Ok(Json::from(DatasetList {
-        datasets: key_not_loaded,
-    }))
-}
-
 async fn get_encrypted_datasets_state(
     _state: Arc<Mutex<ServerState>>,
 ) -> Result<DatasetsFullMountState, Error> {
@@ -150,7 +128,6 @@ async fn get_encrypted_datasets_state(
                 },
             )
         })
-        .filter(|(_ds_name, m)| !m.is_mounted)
         .collect::<BTreeMap<_, _>>();
 
     Ok(DatasetsFullMountState {
@@ -187,7 +164,6 @@ fn routes() -> Router<Arc<Mutex<ServerState>>> {
     let router = Router::new();
 
     router
-        .route("/encrypted_locked_datasets", get(encrypted_locked_datasets))
         .route("/encrypted_datasets_state", get(encrypted_datasets_state))
         .route("/encrypted_dataset_state", post(encrypted_dataset_state))
         .route("/load_key", post(load_key))

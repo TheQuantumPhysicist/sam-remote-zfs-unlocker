@@ -15,7 +15,7 @@ use leptos::{
 async fn initial_query<A: ZfsRemoteHighLevel + 'static>(
     api: A,
 ) -> Result<(A, DatasetsFullMountState), A::Error> {
-    let result = api.encrypted_unmounted_datasets().await;
+    let result = api.encrypted_datasets_state().await;
 
     result.map(|r| (api, r))
 }

@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::types::{
-    DatasetFullMountState, DatasetList, DatasetMountedResponse, DatasetsFullMountState,
-    KeyLoadedResponse,
+    DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse,
 };
 use async_trait::async_trait;
 use reqwasm::http;
@@ -11,8 +10,7 @@ use reqwasm::http;
 pub trait ZfsRemoteAPI: Clone {
     type Error: std::error::Error + Send + Sync + Clone + 'static;
 
-    async fn encrypted_locked_datasets(&self) -> Result<DatasetList, Self::Error>;
-    async fn encrypted_unmounted_datasets(&self) -> Result<DatasetsFullMountState, Self::Error>;
+    async fn encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error>;
     async fn encrypted_dataset_state(
         &self,
         dataset_name: &str,
@@ -23,11 +21,6 @@ pub trait ZfsRemoteAPI: Clone {
         password: &str,
     ) -> Result<KeyLoadedResponse, Self::Error>;
     async fn mount_dataset(
-        &mut self,
-        dataset_name: &str,
-    ) -> Result<DatasetMountedResponse, Self::Error>;
-    async fn unload_key(&mut self, dataset_name: &str) -> Result<KeyLoadedResponse, Self::Error>;
-    async fn unmount_dataset(
         &mut self,
         dataset_name: &str,
     ) -> Result<DatasetMountedResponse, Self::Error>;

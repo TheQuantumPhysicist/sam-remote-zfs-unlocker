@@ -8,8 +8,7 @@ use async_trait::async_trait;
 use crate::{
     config::MockSettings,
     types::{
-        DatasetFullMountState, DatasetList, DatasetMountedResponse, DatasetsFullMountState,
-        KeyLoadedResponse,
+        DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse,
     },
 };
 
@@ -103,21 +102,7 @@ impl ApiMock {
 impl ZfsRemoteAPI for ApiMock {
     type Error = ApiMockError;
 
-    async fn encrypted_locked_datasets(&self) -> Result<DatasetList, Self::Error> {
-        sleep_for_dramatic_effect().await;
-
-        let inner = self.inner.lock().expect("Poisoned mutex");
-
-        let datasets = inner
-            .state
-            .iter()
-            .filter(|(_ds_name, m)| !m.state.key_loaded)
-            .map(|(ds_name, _m)| ds_name.to_string())
-            .collect();
-        Ok(DatasetList { datasets })
-    }
-
-    async fn encrypted_unmounted_datasets(&self) -> Result<DatasetsFullMountState, Self::Error> {
+    async fn encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error> {
         sleep_for_dramatic_effect().await;
 
         let inner = self.inner.lock().expect("Poisoned mutex");
@@ -183,57 +168,6 @@ impl ZfsRemoteAPI for ApiMock {
         Ok(DatasetMountedResponse {
             dataset_name: dataset_name.to_string(),
             is_mounted: true,
-        })
-    }
-
-    async fn unload_key(&mut self, dataset_name: &str) -> Result<KeyLoadedResponse, Self::Error> {
-        sleep_for_dramatic_effect().await;
-
-        let mut inner = self.inner.lock().expect("Poisoned mutex");
-
-        let dataset_details = inner
-            .state
-            .get_mut(dataset_name)
-            .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
-
-        if random_0_to_1_float() < dataset_details.error_probability {
-            return Err(ApiMockError::SimulatedError(dataset_name.to_string()));
-        }
-
-        if !dataset_details.state.is_mounted {
-            dataset_details.state.key_loaded = false;
-            Ok(KeyLoadedResponse {
-                dataset_name: dataset_name.to_string(),
-                key_loaded: false,
-            })
-        } else {
-            Err(ApiMockError::CannotUnlockKeyForMountDataset(
-                dataset_name.to_string(),
-            ))
-        }
-    }
-
-    async fn unmount_dataset(
-        &mut self,
-        dataset_name: &str,
-    ) -> Result<DatasetMountedResponse, Self::Error> {
-        sleep_for_dramatic_effect().await;
-
-        let mut inner = self.inner.lock().expect("Poisoned mutex");
-
-        let dataset_details = inner
-            .state
-            .get_mut(dataset_name)
-            .ok_or(ApiMockError::DatasetNotFound(dataset_name.to_string()))?;
-
-        if random_0_to_1_float() < dataset_details.error_probability {
-            return Err(ApiMockError::SimulatedError(dataset_name.to_string()));
-        }
-
-        dataset_details.state.is_mounted = false;
-        Ok(DatasetMountedResponse {
-            dataset_name: dataset_name.to_string(),
-            is_mounted: false,
         })
     }
 
