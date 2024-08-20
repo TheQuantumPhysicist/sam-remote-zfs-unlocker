@@ -215,7 +215,7 @@ async fn all_datasets_mount_state(
 async fn get_encrypted_datasets_state(
     state: Arc<Mutex<ServerState>>,
 ) -> Result<DatasetsFullMountState, Error> {
-    let mount_states = sam_zfs_unlocker::zfs_list_unmounted_datasets()?;
+    let mount_states = sam_zfs_unlocker::zfs_list_encrypted_datasets()?;
 
     let permissive = state.lock().await.is_permissive();
 
