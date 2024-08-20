@@ -1,21 +1,12 @@
-use std::{
-    net::{SocketAddr, SocketAddrV4},
-    str::FromStr,
-};
+use clap::Parser;
 
-use tokio::net::TcpListener;
+use api_server::{run_options::RunOptions, start_server};
 
 #[tokio::main]
-async fn main() {
-    // TODO: Fill this from clap
-    let listener_socket = TcpListener::bind(SocketAddr::V4(
-        SocketAddrV4::from_str("127.0.0.1:6677").unwrap(),
-    ))
-    .await
-    .expect("Valid listening address");
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = RunOptions::parse();
 
-    // TODO: set permissive from clap
-    api_server::web_server(listener_socket, true)
-        .await
-        .expect("Failed to start web server")
+    match args.command {
+        api_server::run_options::RunCommand::Server(s) => start_server(s).await,
+    }
 }

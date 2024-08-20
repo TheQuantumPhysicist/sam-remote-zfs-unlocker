@@ -8,4 +8,5 @@ license.workspace = true
 [dependencies]
 api-server = { path = "../webserver-lib" }
 
+clap = { workspace = true, features = ["derive"] }
 tokio = { workspace = true }

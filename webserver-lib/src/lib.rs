@@ -1,3 +1,4 @@
+pub mod run_options;
 pub mod state;
 
 use std::{collections::BTreeMap, sync::Arc};
@@ -14,6 +15,7 @@ use common::types::{
     DatasetsFullMountState, DatasetsMountState, KeyLoadedResponse,
 };
 use hyper::{HeaderMap, Method, StatusCode};
+use run_options::server_run_options::ServerRunOptions;
 use sam_zfs_unlocker::{
     zfs_is_dataset_mounted, zfs_is_key_loaded, zfs_load_key, zfs_mount_dataset, zfs_unload_key,
     zfs_unmount_dataset, ZfsError,
@@ -311,4 +313,12 @@ pub fn web_server(
         .fallback(handler_404);
 
     axum::serve(socket, routes.into_make_service())
+}
+
+pub async fn start_server(options: ServerRunOptions) -> Result<(), Box<dyn std::error::Error>> {
+    let listener_socket = TcpListener::bind(options.bind_address())
+        .await
+        .expect("Valid listening address");
+
+    web_server(listener_socket, true).await.map_err(Into::into)
 }

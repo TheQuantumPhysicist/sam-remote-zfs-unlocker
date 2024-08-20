@@ -32,6 +32,7 @@ default-members = [
 async_channel_io = "0.3"
 async-trait = "0.1"
 axum = "0.7"
+clap = "4.5"
 gloo-timers = { version = "0.3.0" }
 hyper = "1.0"
 sam-zfs-unlocker = "0.1"

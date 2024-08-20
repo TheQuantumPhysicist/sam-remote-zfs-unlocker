@@ -15,4 +15,5 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt", "time"] }
 tower-http-axum = { workspace = true, features = ["cors"] }
 
+clap = { workspace = true, features = ["derive"] }
 common = { path = "../common/" }
