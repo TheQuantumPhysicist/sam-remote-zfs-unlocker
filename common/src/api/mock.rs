@@ -197,7 +197,9 @@ impl ZfsRemoteAPI for ApiMock {
         let mut inner = self.inner.lock().expect("Poisoned mutex");
 
         if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
-            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+            if random_0_to_1_float() < ERROR_PROBABILITY {
+                return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+            }
         }
 
         let dataset_details = inner
@@ -218,7 +220,9 @@ impl ZfsRemoteAPI for ApiMock {
         let mut inner = self.inner.lock().expect("Poisoned mutex");
 
         if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
-            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+            if random_0_to_1_float() < ERROR_PROBABILITY {
+                return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+            }
         }
 
         let dataset_details = inner
@@ -248,7 +252,9 @@ impl ZfsRemoteAPI for ApiMock {
         let mut inner = self.inner.lock().expect("Poisoned mutex");
 
         if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
-            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+            if random_0_to_1_float() < ERROR_PROBABILITY {
+                return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+            }
         }
 
         let dataset_details = inner
@@ -272,7 +278,9 @@ impl ZfsRemoteAPI for ApiMock {
         let inner = self.inner.lock().expect("Poisoned mutex");
 
         if let Some(ds_name) = inner.erring_datasets.get(dataset_name) {
-            return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+            if random_0_to_1_float() < ERROR_PROBABILITY {
+                return Err(ApiMockError::SimulatedError(ds_name.to_string()));
+            }
         }
 
         let dataset_details = inner
@@ -288,3 +296,10 @@ async fn sleep_for_dramatic_effect() {
     const SLEEP_DURATION: u32 = 1000;
     Sleepr::new(SLEEP_DURATION).sleep().await;
 }
+
+fn random_0_to_1_float() -> f32 {
+    let mut rng = rand::thread_rng();
+    rand::Rng::gen_range(&mut rng, 0.0..1.0)
+}
+
+const ERROR_PROBABILITY: f32 = 0.5;

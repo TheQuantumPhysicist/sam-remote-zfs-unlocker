@@ -4,8 +4,12 @@
 
 # Mock configuration
 [mode.mock]
+# Simualted datasets
 datasets_and_passwords = [
     ["dataset1", "password1"],
-    ["dataset2", "password2"]
+    ["dataset2", "password2"],
+    ["dataset3", "password3"],
+    ["dataset4", "password4"]
 ]
+# Datasets that will fail, occasionally
 erring_datasets = ["dataset3", "dataset4"]

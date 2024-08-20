@@ -289,6 +289,7 @@ dependencies = [
  "async_channel_io",
  "gloo-timers",
  "gloo-utils 0.2.0",
+ "rand",
  "reqwasm",
  "serde",
  "serde_json",
