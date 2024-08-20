@@ -30,7 +30,7 @@ pub struct ApiRouteImpl {
 impl ApiRouteImpl {
     pub fn new_from_config(settings: LiveSettings) -> Self {
         Self {
-            base_url: settings.base_url,
+            base_url: settings.base_url.trim_end_matches('/').to_string(),
         }
     }
 }
@@ -95,7 +95,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
 
 async fn do_get_request<J: for<'de> Deserialize<'de>>(url: &str) -> Result<J, ApiError> {
     let response = WasmRequest::new()
-        .get(&url)
+        .get(url)
         .await
         .map_err(|e| ApiError::Request(e.to_string()))?;
     let response_json = response
@@ -112,7 +112,7 @@ async fn do_post_request<J: for<'de> Deserialize<'de>, T: serde::Serialize>(
     extra_headers: BTreeMap<String, String>,
 ) -> Result<J, ApiError> {
     let response = WasmRequest::new()
-        .post(&url, body, extra_headers)
+        .post(url, body, extra_headers)
         .await
         .map_err(|e| ApiError::Request(e.to_string()))?;
     let response_json = response

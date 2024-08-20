@@ -36,7 +36,7 @@ impl FromStr for WebPageConfig {
     type Err = Box<dyn std::error::Error>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let config: WebPageConfig = toml::from_str(&s)?;
+        let config: WebPageConfig = toml::from_str(s)?;
         Ok(config)
     }
 }
