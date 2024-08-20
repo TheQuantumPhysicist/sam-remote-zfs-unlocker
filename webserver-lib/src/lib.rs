@@ -184,13 +184,17 @@ fn web_server(socket: TcpListener) -> Serve<IntoMakeService<Router>, Router> {
         .nest("/zfs", routes())
         .with_state(state)
         .layer(cors_layer)
+        .layer(tower_http_axum::trace::TraceLayer::new_for_http())
         .fallback(handler_404);
 
     axum::serve(socket, routes.into_make_service())
 }
 
 pub async fn start_server(options: ServerRunOptions) -> Result<(), Box<dyn std::error::Error>> {
-    let listener_socket = TcpListener::bind(options.bind_address()).await?;
+    let bind_address = options.bind_address();
+    let listener_socket = TcpListener::bind(bind_address).await?;
+
+    log::info!("Server socket binding to {}", bind_address);
 
     web_server(listener_socket).await.map_err(Into::into)
 }

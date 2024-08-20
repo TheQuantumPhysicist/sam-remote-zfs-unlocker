@@ -34,11 +34,14 @@ async-trait = "0.1"
 axum = "0.7"
 clap = "4.5"
 gloo-timers = { version = "0.3.0" }
+log = "0.4"
 hyper = "1.0"
 sam-zfs-unlocker = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
 tokio = { version = "1.39", features = ["full"] }
-tower-http-axum = { package = "tower-http", version = "0.5" }
+tower-http-axum = { version = "0.5", package = "tower-http" }
+tracing = "0.1"
+tracing-subscriber = "0.3"
 wasm-bindgen-futures = "0.4"
