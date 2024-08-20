@@ -18,8 +18,8 @@ use super::{traits::ZfsRemoteAPI, wasm_request::WasmRequest};
 pub enum ApiError {
     #[error("Request error: {0}")]
     Request(String),
-    #[error("Json conversion error")]
-    JsonConversion(String),
+    #[error("Json conversion error for URL `{0}`: {1}")]
+    JsonConversion(String, String),
 }
 
 #[derive(Debug, Clone)]
@@ -40,12 +40,12 @@ impl ZfsRemoteAPI for ApiRouteImpl {
     type Error = ApiError;
 
     async fn encrypted_locked_datasets(&self) -> Result<DatasetList, Self::Error> {
-        let url = format!("{}/encrypted_locked_datasets", self.base_url);
+        let url = format!("{}/zfs/encrypted_locked_datasets", self.base_url);
         do_get_request(&url).await
     }
 
     async fn encrypted_unmounted_datasets(&self) -> Result<DatasetsFullMountState, Self::Error> {
-        let url = format!("{}/encrypted_unmounted_datasets", self.base_url);
+        let url = format!("{}/zfs/encrypted_unmounted_datasets", self.base_url);
         do_get_request(&url).await
     }
 
@@ -53,11 +53,15 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         &self,
         dataset_name: &str,
     ) -> Result<DatasetFullMountState, Self::Error> {
-        let url = format!(
-            "{}/encrypted_unmounted_datasets/{dataset_name}",
-            self.base_url
-        );
-        do_get_request(&url).await
+        let url = format!("{}/zfs/encrypted_dataset_state", self.base_url);
+        do_post_request(
+            &url,
+            Some(DatasetBody {
+                dataset_name: dataset_name.to_string(),
+            }),
+            [].into(),
+        )
+        .await
     }
 
     async fn load_key(
@@ -65,7 +69,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         dataset_name: &str,
         password: &str,
     ) -> Result<KeyLoadedResponse, Self::Error> {
-        let url = format!("{}/load_key", self.base_url);
+        let url = format!("{}/zfs/load_key", self.base_url);
         do_post_request(
             &url,
             Some(DatasetBody {
@@ -82,7 +86,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         &mut self,
         dataset_name: &str,
     ) -> Result<DatasetMountedResponse, Self::Error> {
-        let url = format!("{}/mount", self.base_url);
+        let url = format!("{}/zfs/mount", self.base_url);
         do_post_request(
             &url,
             Some(DatasetBody {
@@ -94,7 +98,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
     }
 
     async fn unload_key(&mut self, dataset_name: &str) -> Result<KeyLoadedResponse, Self::Error> {
-        let url = format!("{}/unload_key", self.base_url);
+        let url = format!("{}/zfs/unload_key", self.base_url);
         do_post_request(
             &url,
             Some(DatasetBody {
@@ -109,7 +113,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         &mut self,
         dataset_name: &str,
     ) -> Result<DatasetMountedResponse, Self::Error> {
-        let url = format!("{}/is_permissive", self.base_url);
+        let url = format!("{}/unmount", self.base_url);
         do_post_request(
             &url,
             Some(DatasetBody {
@@ -129,7 +133,7 @@ async fn do_get_request<J: for<'de> Deserialize<'de>>(url: &str) -> Result<J, Ap
     let response_json = response
         .json::<J>()
         .await
-        .map_err(|e| ApiError::JsonConversion(e.to_string()))?;
+        .map_err(|e| ApiError::JsonConversion(url.to_string(), e.to_string()))?;
 
     Ok(response_json)
 }
@@ -146,7 +150,7 @@ async fn do_post_request<J: for<'de> Deserialize<'de>, T: serde::Serialize>(
     let response_json = response
         .json::<J>()
         .await
-        .map_err(|e| ApiError::JsonConversion(e.to_string()))?;
+        .map_err(|e| ApiError::JsonConversion(url.to_string(), e.to_string()))?;
 
     Ok(response_json)
 }

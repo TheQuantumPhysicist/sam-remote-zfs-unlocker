@@ -18,15 +18,14 @@ members = [
    "common",
    "frontend",
    "webserver",
+   "webserver-runner",
 ]
 
 default-members = [
-    "webserver",
+    "webserver-runner",
 ]
 
 [dependencies]
-api-server = { path = "webserver" }
-tokio = { workspace = true }
 
 
 [workspace.dependencies]
@@ -40,4 +39,5 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
 tokio = { version = "1.39", features = ["full"] }
+tower-http-axum = { package = "tower-http", version = "0.5" }
 wasm-bindgen-futures = "0.4"

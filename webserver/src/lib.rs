@@ -3,7 +3,7 @@ pub mod state;
 use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
-    extract::{Path, State},
+    extract::State,
     response::{IntoResponse, Response},
     routing::{get, post, IntoMakeService},
     serve::Serve,
@@ -13,7 +13,7 @@ use common::types::{
     DatasetBody, DatasetFullMountState, DatasetList, DatasetMountedResponse,
     DatasetsFullMountState, DatasetsMountState, KeyLoadedResponse,
 };
-use hyper::{HeaderMap, StatusCode};
+use hyper::{HeaderMap, Method, StatusCode};
 use sam_zfs_unlocker::{
     zfs_is_dataset_mounted, zfs_is_key_loaded, zfs_load_key, zfs_mount_dataset, zfs_unload_key,
     zfs_unmount_dataset, ZfsError,
@@ -21,6 +21,7 @@ use sam_zfs_unlocker::{
 use serde_json::json;
 use state::ServerState;
 use tokio::{net::TcpListener, sync::Mutex};
+use tower_http_axum::cors::{AllowMethods, CorsLayer};
 
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::BAD_REQUEST, "Bad request")
@@ -251,14 +252,15 @@ async fn encrypted_unmounted_datasets(
 
 /// Returns the given encrypted dataset state, and whether it's mounted, and whether their keys is loaded.
 async fn encrypted_dataset_state(
-    Path(dataset_name): Path<String>,
     State(state): State<Arc<Mutex<ServerState>>>,
+    json_body: Json<DatasetBody>,
 ) -> Result<impl IntoResponse, Error> {
+    let dataset_name = &json_body.dataset_name;
     let all_datasets_states = get_encrypted_datasets_state(state).await?;
 
     let result = all_datasets_states
         .states
-        .get(&dataset_name)
+        .get(dataset_name)
         .ok_or(Error::DatasetNotFound(dataset_name.to_string()))?;
 
     Ok(Json::from(result.clone()))
@@ -280,10 +282,7 @@ fn routes() -> Router<Arc<Mutex<ServerState>>> {
             "/encrypted_unmounted_datasets",
             get(encrypted_unmounted_datasets),
         )
-        .route(
-            "/encrypted_dataset_state/:dataset_name",
-            get(encrypted_dataset_state),
-        )
+        .route("/encrypted_dataset_state", post(encrypted_dataset_state))
         .route("/load_key", post(load_key))
         .route("/mount", post(mount_dataset))
         .route("/is_permissive", get(is_permissive))
@@ -300,9 +299,15 @@ pub fn web_server(
     // Placeholder state, for future need
     let state = Arc::new(Mutex::new(state));
 
+    let cors_layer = CorsLayer::new()
+        .allow_methods(AllowMethods::list([Method::GET, Method::POST]))
+        .allow_headers(tower_http_axum::cors::Any)
+        .allow_origin(tower_http_axum::cors::Any);
+
     let routes = Router::new()
         .nest("/zfs", routes())
         .with_state(state)
+        .layer(cors_layer)
         .fallback(handler_404);
 
     axum::serve(socket, routes.into_make_service())
