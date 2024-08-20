@@ -293,10 +293,7 @@ fn routes() -> Router<Arc<Mutex<ServerState>>> {
         .route("/unmount", post(unmount_dataset))
 }
 
-pub fn web_server(
-    socket: TcpListener,
-    is_permissive: bool,
-) -> Serve<IntoMakeService<Router>, Router> {
+fn web_server(socket: TcpListener, is_permissive: bool) -> Serve<IntoMakeService<Router>, Router> {
     let state = ServerState::new(is_permissive);
     // Placeholder state, for future need
     let state = Arc::new(Mutex::new(state));
@@ -316,9 +313,7 @@ pub fn web_server(
 }
 
 pub async fn start_server(options: ServerRunOptions) -> Result<(), Box<dyn std::error::Error>> {
-    let listener_socket = TcpListener::bind(options.bind_address())
-        .await
-        .expect("Valid listening address");
+    let listener_socket = TcpListener::bind(options.bind_address()).await?;
 
     web_server(listener_socket, true).await.map_err(Into::into)
 }
