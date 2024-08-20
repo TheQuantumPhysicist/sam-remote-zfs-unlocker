@@ -17,7 +17,7 @@ license = "MIT"
 members = [
    "common",
    "frontend",
-   "webserver",
+   "webserver-lib",
    "webserver-runner",
 ]
 
