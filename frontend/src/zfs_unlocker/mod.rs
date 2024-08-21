@@ -22,6 +22,11 @@ async fn initial_query<A: ZfsRemoteHighLevel + 'static>(
 
 #[component]
 pub fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
+    view! { <ZfsUnlockTable api /> }
+}
+
+#[component]
+pub fn ZfsUnlockTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
     let zfs_rows = create_local_resource(
         || (),
         move |_| {
