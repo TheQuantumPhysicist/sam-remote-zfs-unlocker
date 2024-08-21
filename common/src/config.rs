@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn load_from_file() {
         // println!("{}", std::env::current_dir().unwrap().display());
-        let _config = WebPageConfig::from_file("../frontend/web.toml").unwrap();
+        let _config = WebPageConfig::from_file("../frontend/public/web.toml").unwrap();
         // println!("{_config:?}");
     }
 }
