@@ -74,6 +74,8 @@ async fn mount_dataset(
 
     zfs_mount_dataset(dataset_name)?;
 
+    let _new_datasets_state = get_encrypted_datasets_state().await?;
+
     Ok(Json::from(DatasetMountedResponse {
         dataset_name: dataset_name.to_string(),
         is_mounted: true,
@@ -81,7 +83,7 @@ async fn mount_dataset(
 }
 
 async fn load_key(
-    State(_): State<Arc<Mutex<ServerState>>>,
+    State(_state): State<Arc<Mutex<ServerState>>>,
     headers: HeaderMap,
     json_body: Json<DatasetBody>,
 ) -> Result<impl IntoResponse, Error> {
@@ -105,15 +107,15 @@ async fn load_key(
 
     zfs_load_key(dataset_name, passphrase)?;
 
+    let _new_datasets_state = get_encrypted_datasets_state().await?;
+
     Ok(Json::from(KeyLoadedResponse {
         dataset_name: dataset_name.to_string(),
         key_loaded: true,
     }))
 }
 
-async fn get_encrypted_datasets_state(
-    _state: Arc<Mutex<ServerState>>,
-) -> Result<DatasetsFullMountState, Error> {
+async fn get_encrypted_datasets_state() -> Result<DatasetsFullMountState, Error> {
     let mount_states = sam_zfs_unlocker::zfs_list_encrypted_datasets()?;
 
     let mount_states = mount_states
@@ -137,20 +139,20 @@ async fn get_encrypted_datasets_state(
 
 /// Returns a list of the encrypted datasets, and whether they're mounted, and whether their keys are loaded.
 async fn encrypted_datasets_state(
-    State(state): State<Arc<Mutex<ServerState>>>,
+    State(_state): State<Arc<Mutex<ServerState>>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = get_encrypted_datasets_state(state).await?;
+    let result = get_encrypted_datasets_state().await?;
 
     Ok(Json::from(result))
 }
 
 /// Returns the given encrypted dataset state, and whether it's mounted, and whether their keys is loaded.
 async fn encrypted_dataset_state(
-    State(state): State<Arc<Mutex<ServerState>>>,
+    State(_state): State<Arc<Mutex<ServerState>>>,
     json_body: Json<DatasetBody>,
 ) -> Result<impl IntoResponse, Error> {
     let dataset_name = &json_body.dataset_name;
-    let all_datasets_states = get_encrypted_datasets_state(state).await?;
+    let all_datasets_states = get_encrypted_datasets_state().await?;
 
     let result = all_datasets_states
         .states
