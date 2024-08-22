@@ -16,7 +16,7 @@ const SPINNING_ANIMS_DATA: [&[u8]; 9] = [
     include_bytes!("../resources/Spinner-2.gif"),
 ];
 
-const SPINNING_ANIMS_BASE64: LazyLock<Vec<String>> = LazyLock::new(|| {
+static SPINNING_ANIMS_BASE64: LazyLock<Vec<String>> = LazyLock::new(|| {
     SPINNING_ANIMS_DATA
         .into_iter()
         .map(|d| BASE64_STANDARD.encode(d))

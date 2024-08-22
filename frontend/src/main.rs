@@ -12,7 +12,7 @@ use zfs_unlocker::App;
 
 const CONFIG_STR: &str = include_str!("../public/web.toml");
 
-const CONFIG: LazyLock<WebPageConfig> = LazyLock::new(|| {
+static CONFIG: LazyLock<WebPageConfig> = LazyLock::new(|| {
     WebPageConfig::from_str(CONFIG_STR)
         .unwrap_or_else(|e| panic!("Failed to find config file. Error: {e}"))
 });

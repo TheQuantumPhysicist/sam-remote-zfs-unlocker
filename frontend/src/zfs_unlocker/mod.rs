@@ -145,16 +145,14 @@ fn ZfsRefreshInput<A: ZfsRemoteHighLevel + 'static>(
 ) -> impl IntoView {
     let _api = api;
 
-    let mount_field_or_already_mounted = move || {
+    move || {
         view! {
             <button on:click=move |_| {
                 dataset_state_resource.set(None);
                 dataset_state_resource.refetch();
             }>"Refresh"</button>
         }
-    };
-
-    mount_field_or_already_mounted
+    }
 }
 
 #[allow(clippy::needless_lifetimes)]
@@ -237,6 +235,7 @@ enum ZFSTableColumnDefinition {
     RefreshButton,
 }
 
+#[allow(clippy::needless_lifetimes)]
 #[component]
 fn ZfsDatasetTableCell<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
