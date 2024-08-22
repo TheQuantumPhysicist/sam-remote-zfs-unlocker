@@ -24,6 +24,9 @@ use state::ServerState;
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http_axum::cors::{AllowMethods, CorsLayer};
 
+/// The max time to wait before considering a task un-doable in a reasonable amount of time.
+const ACCOMPLISHMENT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::BAD_REQUEST, "Bad request")
 }
@@ -56,6 +59,27 @@ impl IntoResponse for Error {
     }
 }
 
+/// Waits for a certain check for the dataset to be satisfied, or an error to be returned.
+/// The function succeeds in both cases, whether the state is satisfied or not. But if the
+/// check isn't satisfied, it'll keep attempting until timeout_duration is passed.
+async fn await_state(
+    dataset_name: impl AsRef<str>,
+    check: impl for<'a> Fn(&'a DatasetFullMountState) -> bool,
+    timeout_duration: std::time::Duration,
+) -> Result<(), Error> {
+    for _ in 0..timeout_duration.as_secs() {
+        let new_datasets_state = get_encrypted_datasets_state().await?;
+        if let Some(dataset_state) = new_datasets_state.states.get(dataset_name.as_ref()) {
+            if check(dataset_state) {
+                return Ok(());
+            }
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+
+    Ok(())
+}
+
 async fn mount_dataset(
     State(_): State<Arc<Mutex<ServerState>>>,
     json_body: Json<DatasetBody>,
@@ -74,7 +98,8 @@ async fn mount_dataset(
 
     zfs_mount_dataset(dataset_name)?;
 
-    let _new_datasets_state = get_encrypted_datasets_state().await?;
+    // It might take some time for ZFS to respond. This waits for it to finish.
+    await_state(dataset_name, |s| s.is_mounted, ACCOMPLISHMENT_TIMEOUT).await?;
 
     Ok(Json::from(DatasetMountedResponse {
         dataset_name: dataset_name.to_string(),
@@ -107,7 +132,8 @@ async fn load_key(
 
     zfs_load_key(dataset_name, passphrase)?;
 
-    let _new_datasets_state = get_encrypted_datasets_state().await?;
+    // It might take some time for ZFS to respond. This waits for it to finish.
+    await_state(dataset_name, |s| s.key_loaded, ACCOMPLISHMENT_TIMEOUT).await?;
 
     Ok(Json::from(KeyLoadedResponse {
         dataset_name: dataset_name.to_string(),
