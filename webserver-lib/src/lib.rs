@@ -24,9 +24,6 @@ use state::ServerState;
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http_axum::cors::{AllowMethods, CorsLayer};
 
-/// The max time to wait before considering a task un-doable in a reasonable amount of time.
-const ACCOMPLISHMENT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
-
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::BAD_REQUEST, "Bad request")
 }
@@ -62,6 +59,7 @@ impl IntoResponse for Error {
 /// Waits for a certain check for the dataset to be satisfied, or an error to be returned.
 /// The function succeeds in both cases, whether the state is satisfied or not. But if the
 /// check isn't satisfied, it'll keep attempting until timeout_duration is passed.
+#[allow(dead_code)]
 async fn await_state(
     dataset_name: impl AsRef<str>,
     check: impl for<'a> Fn(&'a DatasetFullMountState) -> bool,
@@ -98,9 +96,6 @@ async fn mount_dataset(
 
     zfs_mount_dataset(dataset_name)?;
 
-    // It might take some time for ZFS to respond. This waits for it to finish.
-    await_state(dataset_name, |s| s.is_mounted, ACCOMPLISHMENT_TIMEOUT).await?;
-
     Ok(Json::from(DatasetMountedResponse {
         dataset_name: dataset_name.to_string(),
         is_mounted: true,
@@ -131,9 +126,6 @@ async fn load_key(
         .map_err(|e| Error::NonPrintablePassphrase(e.to_string(), dataset_name.clone()))?;
 
     zfs_load_key(dataset_name, passphrase)?;
-
-    // It might take some time for ZFS to respond. This waits for it to finish.
-    await_state(dataset_name, |s| s.key_loaded, ACCOMPLISHMENT_TIMEOUT).await?;
 
     Ok(Json::from(KeyLoadedResponse {
         dataset_name: dataset_name.to_string(),
