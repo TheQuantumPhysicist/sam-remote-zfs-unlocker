@@ -152,7 +152,10 @@ fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
     let mount_dataset = create_action(move |_: &()| {
         let mut api_for_mount: A = api.clone();
         let dataset_name = dataset_name_for_mount.clone();
-        async move { api_for_mount.mount_dataset(&dataset_name).await }
+        async move {
+            let _mount_result = api_for_mount.mount_dataset(&dataset_name).await;
+            dataset_state_resource.refetch()
+        }
     });
 
     // This contains the text field + submit button objects, depending on whether the key is loaded or not
@@ -165,9 +168,8 @@ fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
                         {
                             view! {
                                 <button on:click=move |_| {
-                                    mount_dataset.dispatch(());
                                     dataset_state_resource.set(None);
-                                    dataset_state_resource.refetch();
+                                    mount_dataset.dispatch(());
                                 }>"Mount dataset"</button>
                             }
                         }
@@ -238,7 +240,10 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         let password = password.clone();
         let mut api_for_pw: A = api_for_pw.clone();
         let dataset_name = dataset_name_for_pw.clone();
-        async move { api_for_pw.load_key(&dataset_name, &password).await }
+        async move {
+            let _load_key_result = api_for_pw.load_key(&dataset_name, &password).await;
+            dataset_state_resource.refetch()
+        }
     });
 
     // This contains the text field + submit button objects, depending on whether the key is loaded or not
@@ -259,9 +264,8 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
                                 prop:value=password_in_input
                             />
                             <button on:click=move |_| {
-                                load_key_password.dispatch(password_in_input.get());
                                 dataset_state_resource.set(None);
-                                dataset_state_resource.refetch();
+                                load_key_password.dispatch(password_in_input.get());
                             }>"Load key"</button>
                         }
                     }
