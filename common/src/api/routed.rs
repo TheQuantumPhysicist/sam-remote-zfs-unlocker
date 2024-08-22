@@ -81,7 +81,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         &mut self,
         dataset_name: &str,
     ) -> Result<DatasetMountedResponse, Self::Error> {
-        let url = format!("{}/zfs/mount", self.base_url);
+        let url = format!("{}/zfs/mount-dataset", self.base_url);
         do_post_request(
             &url,
             Some(DatasetBody {

@@ -167,7 +167,7 @@ fn routes() -> Router<Arc<Mutex<ServerState>>> {
         .route("/encrypted-datasets-state", get(encrypted_datasets_state))
         .route("/encrypted-dataset-state", post(encrypted_dataset_state))
         .route("/load-key", post(load_key))
-        .route("/mount", post(mount_dataset))
+        .route("/mount-dataset", post(mount_dataset))
 }
 
 fn web_server(socket: TcpListener) -> Serve<IntoMakeService<Router>, Router> {
