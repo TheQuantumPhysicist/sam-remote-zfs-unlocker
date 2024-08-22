@@ -40,7 +40,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
     type Error = ApiError;
 
     async fn encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error> {
-        let url = format!("{}/zfs/encrypted_datasets_state", self.base_url);
+        let url = format!("{}/zfs/encrypted-datasets-state", self.base_url);
         do_get_request(&url).await
     }
 
@@ -48,7 +48,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         &self,
         dataset_name: &str,
     ) -> Result<DatasetFullMountState, Self::Error> {
-        let url = format!("{}/zfs/encrypted_dataset_state", self.base_url);
+        let url = format!("{}/zfs/encrypted-dataset-state", self.base_url);
         do_post_request(
             &url,
             Some(DatasetBody {
@@ -64,7 +64,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         dataset_name: &str,
         password: &str,
     ) -> Result<KeyLoadedResponse, Self::Error> {
-        let url = format!("{}/zfs/load_key", self.base_url);
+        let url = format!("{}/zfs/load-key", self.base_url);
         do_post_request(
             &url,
             Some(DatasetBody {

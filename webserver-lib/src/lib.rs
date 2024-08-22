@@ -164,9 +164,9 @@ fn routes() -> Router<Arc<Mutex<ServerState>>> {
     let router = Router::new();
 
     router
-        .route("/encrypted_datasets_state", get(encrypted_datasets_state))
-        .route("/encrypted_dataset_state", post(encrypted_dataset_state))
-        .route("/load_key", post(load_key))
+        .route("/encrypted-datasets-state", get(encrypted_datasets_state))
+        .route("/encrypted-dataset-state", post(encrypted_dataset_state))
+        .route("/load-key", post(load_key))
         .route("/mount", post(mount_dataset))
 }
 
