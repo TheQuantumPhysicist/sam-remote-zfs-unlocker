@@ -1,8 +1,14 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 use crate::images::RandomLoadingImage;
 use common::{
-    api::traits::{ZfsRemoteAPI, ZfsRemoteHighLevel},
+    api::{
+        api_wrapper::ApiAny,
+        mock::ApiMock,
+        routed::ApiRouteImpl,
+        traits::{ZfsRemoteAPI, ZfsRemoteHighLevel},
+    },
+    config::WebPageConfig,
     types::{DatasetFullMountState, DatasetsFullMountState},
 };
 use futures::FutureExt;
@@ -12,7 +18,19 @@ use leptos::{
     SignalWith, Transition,
 };
 
-async fn initial_query<A: ZfsRemoteHighLevel + 'static>(
+const CONFIG_URL: &str = "/public/web.toml";
+
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum ConfigurationLoadError {
+    #[error("Configuration retrieval error. Configuration is expected to be found in path {1}. Error: {0}")]
+    Retrieval(String, String),
+    #[error("Failed to get configuration file as text to parse. Error: {0}")]
+    TextRetrieval(String),
+    #[error("Failed to parse config file: {0}")]
+    FileParse(String),
+}
+
+async fn initial_table_query<A: ZfsRemoteHighLevel + 'static>(
     api: A,
 ) -> Result<(A, DatasetsFullMountState), A::Error> {
     let result = api.encrypted_datasets_state().await;
@@ -20,9 +38,70 @@ async fn initial_query<A: ZfsRemoteHighLevel + 'static>(
     result.map(|r| (api, r))
 }
 
+async fn retrieve_config() -> Result<WebPageConfig, ConfigurationLoadError> {
+    let url = CONFIG_URL;
+
+    let config_file = reqwasm::http::Request::get(url)
+        .send()
+        .await
+        .map_err(|e| ConfigurationLoadError::Retrieval(e.to_string(), url.to_string()))?
+        // convert it to JSON
+        .text()
+        .await
+        .map_err(|e| ConfigurationLoadError::TextRetrieval(e.to_string()))?;
+
+    let webpage_config = WebPageConfig::from_str(&config_file)
+        .map_err(|e| ConfigurationLoadError::FileParse(e.to_string()))?;
+    Ok(webpage_config)
+}
+
 #[component]
-pub fn App<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
-    view! { <ZfsUnlockTable api /> }
+pub fn App() -> impl IntoView {
+    let configuration_getter =
+        create_local_resource(|| (), move |_| async move { retrieve_config().await });
+
+    move || {
+        configuration_getter.and_then(|config| {
+            let api: ApiAny = match config.mode.clone() {
+                common::config::LiveOrMock::Live(s) => {
+                    ApiRouteImpl::new_from_config(s.clone()).into()
+                }
+                common::config::LiveOrMock::Mock(m) => ApiMock::new_from_config(m.clone()).into(),
+            };
+
+            view! {
+                <Transition fallback=move || {
+                    view! {
+                        <div class="config-loading-page">
+                            <RandomLoadingImage />
+                        </div>
+                    }
+                }>
+                    <div>
+                        <ZfsUnlockTable api=api.clone() />
+                    </div>
+                </Transition>
+            }
+        })
+    }
+}
+
+fn error_fallback(errors: RwSignal<Errors>) -> impl IntoView {
+    let error_list = move || {
+        errors.with(|errors| {
+            errors
+                .iter()
+                .map(|(_, e)| view! { <li>{e.to_string()}</li> })
+                .collect_view()
+        })
+    };
+
+    view! {
+        <div class="error">
+            <h2>"Error"</h2>
+            <ul>{error_list}</ul>
+        </div>
+    }
 }
 
 #[component]
@@ -31,27 +110,9 @@ pub fn ZfsUnlockTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView 
         || (),
         move |_| {
             let api = api.clone();
-            async move { initial_query(api).await }
+            async move { initial_table_query(api).await }
         },
     );
-
-    let fallback = move |errors: RwSignal<Errors>| {
-        let error_list = move || {
-            errors.with(|errors| {
-                errors
-                    .iter()
-                    .map(|(_, e)| view! { <li>{e.to_string()}</li> })
-                    .collect_view()
-            })
-        };
-
-        view! {
-            <div class="error">
-                <h2>"Error"</h2>
-                <ul>{error_list}</ul>
-            </div>
-        }
-    };
 
     let zfs_table_view = move || {
         zfs_rows.and_then(|(api, rows)| {
@@ -60,7 +121,7 @@ pub fn ZfsUnlockTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView 
     };
 
     view! {
-        <ErrorBoundary fallback>
+        <ErrorBoundary fallback=error_fallback>
             <Transition fallback=move || {
                 view! {
                     <div class="first-loading-page">
