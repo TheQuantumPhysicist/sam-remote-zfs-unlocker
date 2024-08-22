@@ -5,15 +5,15 @@ use leptos::{component, view, IntoView};
 use rand::Rng;
 
 const SPINNING_ANIMS_DATA: [&[u8]; 9] = [
-    include_bytes!("../public/3DSnake.gif"),
-    include_bytes!("../public/BallInBowl.gif"),
-    include_bytes!("../public/Book.gif"),
-    include_bytes!("../public/Circles-menu-3.gif"),
-    include_bytes!("../public/Fidget-spinner.gif"),
-    include_bytes!("../public/Radar.gif"),
-    include_bytes!("../public/Rhombus.gif"),
-    include_bytes!("../public/Rocket.gif"),
-    include_bytes!("../public/Spinner-2.gif"),
+    include_bytes!("../resources/3DSnake.gif"),
+    include_bytes!("../resources/BallInBowl.gif"),
+    include_bytes!("../resources/Book.gif"),
+    include_bytes!("../resources/Circles-menu-3.gif"),
+    include_bytes!("../resources/Fidget-spinner.gif"),
+    include_bytes!("../resources/Radar.gif"),
+    include_bytes!("../resources/Rhombus.gif"),
+    include_bytes!("../resources/Rocket.gif"),
+    include_bytes!("../resources/Spinner-2.gif"),
 ];
 
 const SPINNING_ANIMS_BASE64: LazyLock<Vec<String>> = LazyLock::new(|| {
