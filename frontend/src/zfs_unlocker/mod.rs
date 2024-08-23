@@ -150,7 +150,7 @@ fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
 
     // This action takes the action from the user, the click, and sends it to the API to unlock the dataset
     let mount_dataset = create_action(move |_: &()| {
-        let mut api_for_mount: A = api.clone();
+        let mut api_for_mount = api.clone();
         let dataset_name = dataset_name_for_mount.clone();
         async move {
             let _mount_result = api_for_mount.mount_dataset(&dataset_name).await;
@@ -231,14 +231,14 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
     let dataset_name = Arc::new(current_mount_state.dataset_name.to_string());
     let dataset_name_for_pw = dataset_name.clone();
 
-    let api_for_pw: A = api.clone();
+    let api_for_pw = api.clone();
 
     let (password_in_input, set_password_in_input) = create_signal("".to_string());
 
     // This action takes the action from the user, the click, and sends it to the API to unlock the dataset
     let load_key_password = create_action(move |password: &String| {
         let password = password.clone();
-        let mut api_for_pw: A = api_for_pw.clone();
+        let mut api_for_pw = api_for_pw.clone();
         let dataset_name = dataset_name_for_pw.clone();
         async move {
             let _load_key_result = api_for_pw.load_key(&dataset_name, &password).await;
