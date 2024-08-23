@@ -20,6 +20,10 @@ use leptos::{
 
 const CONFIG_URL: &str = "/public/web.toml";
 
+fn log(entry: impl AsRef<str>) {
+    leptos::leptos_dom::logging::console_log(entry.as_ref());
+}
+
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ConfigurationLoadError {
     #[error("Configuration retrieval error. Configuration is expected to be found in path {1}. Error: {0}")]
@@ -41,6 +45,8 @@ async fn initial_table_query<A: ZfsRemoteHighLevel + 'static>(
 async fn retrieve_config() -> Result<WebPageConfig, ConfigurationLoadError> {
     let url = CONFIG_URL;
 
+    log(format!("Retrieving config from URL: {url}"));
+
     let config_file = reqwasm::http::Request::get(url)
         .send()
         .await
@@ -51,6 +57,9 @@ async fn retrieve_config() -> Result<WebPageConfig, ConfigurationLoadError> {
 
     let webpage_config = WebPageConfig::from_str(&config_file)
         .map_err(|e| ConfigurationLoadError::FileParse(e.to_string()))?;
+
+    log("Done retrieving config");
+
     Ok(webpage_config)
 }
 
@@ -63,9 +72,13 @@ pub fn App() -> impl IntoView {
         configuration_getter.and_then(|config| {
             let api: ApiAny = match config.mode.clone() {
                 common::config::LiveOrMock::Live(s) => {
-                    ApiRouteImpl::new_from_config(s.clone()).into()
+                    log("Initializing live object");
+                    ApiRouteImpl::new_from_config(s).into()
                 }
-                common::config::LiveOrMock::Mock(m) => ApiMock::new_from_config(m.clone()).into(),
+                common::config::LiveOrMock::Mock(m) => {
+                    log("Initializing mock object");
+                    ApiMock::new_from_config(m).into()
+                }
             };
 
             view! {
@@ -105,6 +118,8 @@ fn error_fallback(errors: RwSignal<Errors>) -> impl IntoView {
 
 #[component]
 pub fn ZfsUnlockTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
+    log("Creating ZFS table");
+
     let zfs_rows = create_local_resource(
         || (),
         move |_| {
