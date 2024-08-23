@@ -30,8 +30,8 @@ pub enum ConfigurationLoadError {
     Retrieval(String, String),
     #[error("Failed to get configuration file as text to parse. Error: {0}")]
     TextRetrieval(String),
-    #[error("Failed to parse config file: {0}")]
-    FileParse(String),
+    #[error("Config file parse error. Make sure the config file is in the path: {1}. Error: {0}")]
+    FileParse(String, String),
 }
 
 async fn initial_table_query<A: ZfsRemoteHighLevel + 'static>(
@@ -56,7 +56,7 @@ async fn retrieve_config() -> Result<WebPageConfig, ConfigurationLoadError> {
         .map_err(|e| ConfigurationLoadError::TextRetrieval(e.to_string()))?;
 
     let webpage_config = WebPageConfig::from_str(&config_file)
-        .map_err(|e| ConfigurationLoadError::FileParse(e.to_string()))?;
+        .map_err(|e| ConfigurationLoadError::FileParse(url.to_string(), e.to_string()))?;
 
     log("Done retrieving config");
 
@@ -66,9 +66,9 @@ async fn retrieve_config() -> Result<WebPageConfig, ConfigurationLoadError> {
 #[component]
 pub fn App() -> impl IntoView {
     let configuration_getter =
-        create_local_resource(|| (), move |_| async move { retrieve_config().await });
+        create_local_resource(|| (), move |_| async { retrieve_config().await });
 
-    move || {
+    let after_config_view = move || {
         configuration_getter.and_then(|config| {
             let api: ApiAny = match config.mode.clone() {
                 common::config::LiveOrMock::Live(s) => {
@@ -80,21 +80,22 @@ pub fn App() -> impl IntoView {
                     ApiMock::new_from_config(m).into()
                 }
             };
-
-            view! {
-                <Transition fallback=move || {
-                    view! {
-                        <div class="config-loading-page">
-                            <RandomLoadingImage />
-                        </div>
-                    }
-                }>
-                    <div>
-                        <ZfsUnlockTable api=api.clone() />
-                    </div>
-                </Transition>
-            }
+            view! { <ZfsUnlockTable api=api.clone() /> }
         })
+    };
+
+    view! {
+        <ErrorBoundary fallback=error_fallback>
+            <Transition fallback=move || {
+                view! {
+                    <div class="config-loading-page">
+                        <RandomLoadingImage />
+                    </div>
+                }
+            }>
+                <div>{after_config_view}</div>
+            </Transition>
+        </ErrorBoundary>
     }
 }
 
@@ -138,7 +139,7 @@ pub fn ZfsUnlockTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView 
         <ErrorBoundary fallback=error_fallback>
             <Transition fallback=move || {
                 view! {
-                    <div class="first-loading-page">
+                    <div class="zfs-loading-page">
                         <RandomLoadingImage />
                     </div>
                 }
