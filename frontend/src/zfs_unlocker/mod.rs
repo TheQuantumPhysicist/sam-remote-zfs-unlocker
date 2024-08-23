@@ -45,7 +45,6 @@ async fn retrieve_config() -> Result<WebPageConfig, ConfigurationLoadError> {
         .send()
         .await
         .map_err(|e| ConfigurationLoadError::Retrieval(e.to_string(), url.to_string()))?
-        // convert it to JSON
         .text()
         .await
         .map_err(|e| ConfigurationLoadError::TextRetrieval(e.to_string()))?;
