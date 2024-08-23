@@ -18,7 +18,7 @@ use super::{sleeper::Sleepr, traits::ZfsRemoteAPI};
 pub enum ApiMockError {
     #[error("Wrong password")]
     InvalidEncryptionPassword,
-    #[error("Dataset not found {0}")]
+    #[error("Dataset not found: `{0}`")]
     DatasetNotFound(String),
     #[error("Attempted unload key for a busy dataset: {0}")]
     CannotUnlockKeyForMountDataset(String),

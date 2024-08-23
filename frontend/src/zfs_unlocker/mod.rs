@@ -164,7 +164,11 @@ fn ZfsMountInput<'a, A: ZfsRemoteHighLevel + 'static>(
         let mut api_for_mount = api.clone();
         let dataset_name = dataset_name_for_mount.clone();
         async move {
-            let _mount_result = api_for_mount.mount_dataset(&dataset_name).await;
+            let mount_result = api_for_mount.mount_dataset(&dataset_name).await;
+            match mount_result {
+                Ok(_) => log(format!("Mount success")),
+                Err(e) => log(format!("Mount error: {}", e.to_string())),
+            }
             dataset_state_resource.refetch()
         }
     });
@@ -252,7 +256,11 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         let mut api_for_pw = api_for_pw.clone();
         let dataset_name = dataset_name_for_pw.clone();
         async move {
-            let _load_key_result = api_for_pw.load_key(&dataset_name, &password).await;
+            let load_key_result = api_for_pw.load_key(&dataset_name, &password).await;
+            match load_key_result {
+                Ok(_) => log(format!("Load key success")),
+                Err(e) => log(format!("Load key error: {}", e.to_string())),
+            }
             dataset_state_resource.refetch()
         }
     });
@@ -296,7 +304,7 @@ fn ZfsKeyPasswordInput<'a, A: ZfsRemoteHighLevel + 'static>(
         // 1. The Option from create_local_resource finishing
         // 2. The Option that we manually added, so that we set it to None when the user clicks on "Submit"
         let reloaded_dataset = dataset_state_resource.get().flatten();
-        let ds_info = reloaded_dataset.map(|ds| ds.clone().map(|m| m.key_loaded));
+        let ds_info = reloaded_dataset.map(|ds| ds.map(|m| m.key_loaded));
         match ds_info {
             Some(key_loaded) => password_field_or_key_already_loaded(key_loaded).into_view(),
             None => view! { <RandomLoadingImage /> }.into_view(),
@@ -359,6 +367,7 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
         .as_ref()
         .map(|m| m.dataset_name.to_string())
         .unwrap_or("".to_string());
+    log(format!("Creating row for dataset: {dataset_name}"));
     let api_for_name = api.clone();
     let api_for_pw = api.clone();
     let api_for_mount = api.clone();
@@ -370,7 +379,16 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
             let api = api.clone();
             let dataset_name = dataset_name.clone();
             // We wrap with Some, because None is used to trigger reloading after the user submits the password
-            async move { api.encrypted_dataset_state(&dataset_name).map(Some).await }
+            async move {
+                let dataset_retrieval_result =
+                    api.encrypted_dataset_state(&dataset_name).map(Some).await;
+                if let Err(op_err) = dataset_retrieval_result.clone().transpose() {
+                    log(format!(
+                        "Request to retrieve datasets returned an error: {op_err}"
+                    ))
+                }
+                dataset_retrieval_result
+            }
         },
     );
 
