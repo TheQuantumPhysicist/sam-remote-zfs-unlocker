@@ -167,7 +167,7 @@ fn ZfsMountInput<A: ZfsRemoteHighLevel + 'static>(
                 Ok(_) => log("Mount success"),
                 Err(e) => log(&format!("Mount error: {e}")),
             }
-            dataset_state_resource.refresh()
+            dataset_state_resource.refresh_dataset_state()
         }
     });
 
@@ -217,7 +217,7 @@ fn ZfsRefreshInput<A: ZfsRemoteHighLevel + 'static>(
         let dataset_state_resource = dataset_state_resource.clone();
         view! {
             <button on:click=move |_| {
-                dataset_state_resource.refresh();
+                dataset_state_resource.refresh_dataset_state();
             }>"Refresh"</button>
         }
         .into_view()
@@ -249,7 +249,7 @@ fn ZfsKeyPasswordInput<A: ZfsRemoteHighLevel + 'static>(
                 Ok(_) => log("Load key success"),
                 Err(e) => log(&format!("Load key error: {e}")),
             }
-            dataset_state_resource.refresh()
+            dataset_state_resource.refresh_dataset_state()
         }
     });
 

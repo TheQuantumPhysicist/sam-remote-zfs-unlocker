@@ -50,7 +50,7 @@ impl<A: ZfsRemoteHighLevel + 'static> DatasetStateResource<A> {
         &self.dataset_name
     }
 
-    pub fn refresh(&self) {
+    pub fn refresh_dataset_state(&self) {
         self.res.set(None);
         self.res.refetch();
     }
