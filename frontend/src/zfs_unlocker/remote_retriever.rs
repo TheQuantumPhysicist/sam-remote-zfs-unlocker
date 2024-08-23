@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use common::{
     api::traits::{ZfsRemoteAPI, ZfsRemoteHighLevel},
     types::DatasetFullMountState,
@@ -17,23 +15,21 @@ pub struct DatasetStateResource<A: ZfsRemoteHighLevel> {
 impl<A: ZfsRemoteHighLevel + 'static> DatasetStateResource<A> {
     fn make_resource(
         api: A,
-        dataset_name: impl Into<String> + 'static,
-        log_func: Arc<dyn Fn(&str)>,
+        dataset_name: impl Into<String>,
+        log_func: &'static impl Fn(&str),
     ) -> Resource<(), Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>> {
         let dataset_name = dataset_name.into();
-        let log = log_func.clone();
         create_local_resource(
             move || (),
             move |_| {
                 let api = api.clone();
                 let dataset_name = dataset_name.clone();
-                let log = log.clone();
                 // We wrap with Some, because None is used to trigger reloading after the user submits the password
                 async move {
                     let dataset_retrieval_result =
                         api.encrypted_dataset_state(&dataset_name).map(Some).await;
                     if let Err(op_err) = dataset_retrieval_result.clone().transpose() {
-                        log(&format!(
+                        log_func(&format!(
                             "Request to retrieve datasets returned an error: {op_err}"
                         ))
                     }
@@ -43,7 +39,7 @@ impl<A: ZfsRemoteHighLevel + 'static> DatasetStateResource<A> {
         )
     }
 
-    pub fn new(dataset_name: String, api: A, log_func: Arc<dyn Fn(&str)>) -> Self {
+    pub fn new(dataset_name: String, api: A, log_func: &'static impl Fn(&str)) -> Self {
         Self {
             res: Self::make_resource(api, dataset_name.clone(), log_func),
             dataset_name,

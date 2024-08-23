@@ -348,9 +348,9 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
     initial_mount_state: Option<&'a DatasetFullMountState>,
 ) -> impl IntoView {
     let api_for_cells = api.clone();
-    let dataset_state_resource = initial_mount_state.as_ref().map(|m| {
-        DatasetStateResource::new(m.dataset_name.to_string(), api, std::sync::Arc::new(log))
-    });
+    let dataset_state_resource = initial_mount_state
+        .as_ref()
+        .map(|m| DatasetStateResource::new(m.dataset_name.to_string(), api, &log));
     let api_for_name = api_for_cells.clone();
     let api_for_pw = api_for_cells.clone();
     let api_for_mount = api_for_cells.clone();
