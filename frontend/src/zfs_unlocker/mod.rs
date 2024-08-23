@@ -162,6 +162,8 @@ fn ZfsMountInput<A: ZfsRemoteHighLevel + 'static>(
         let dataset_name = dataset_name_for_mount.clone();
         let dataset_state_resource = dataset_state_resource_for_action.clone();
         async move {
+            // We reset first, to trigger the loading animation
+            dataset_state_resource.reset_dataset_state();
             let mount_result = api_for_mount.mount_dataset(&dataset_name).await;
             match mount_result {
                 Ok(_) => log("Mount success"),
@@ -217,6 +219,7 @@ fn ZfsRefreshInput<A: ZfsRemoteHighLevel + 'static>(
         let dataset_state_resource = dataset_state_resource.clone();
         view! {
             <button on:click=move |_| {
+                dataset_state_resource.reset_dataset_state();
                 dataset_state_resource.refresh_dataset_state();
             }>"Refresh"</button>
         }
@@ -244,6 +247,8 @@ fn ZfsKeyPasswordInput<A: ZfsRemoteHighLevel + 'static>(
         let dataset_name = dataset_name_for_pw.clone();
         let dataset_state_resource = dataset_state_resource_for_action.clone();
         async move {
+            // We reset first, to trigger the loading animation
+            dataset_state_resource.reset_dataset_state();
             let load_key_result = api_for_pw.load_key(&dataset_name, &password).await;
             match load_key_result {
                 Ok(_) => log("Load key success"),

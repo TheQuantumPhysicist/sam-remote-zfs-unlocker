@@ -50,8 +50,12 @@ impl<A: ZfsRemoteHighLevel + 'static> DatasetStateResource<A> {
         &self.dataset_name
     }
 
-    pub fn refresh_dataset_state(&self) {
+    pub fn reset_dataset_state(&self) {
+        // We use reset to None trigger the loading animation
         self.res.set(None);
+    }
+
+    pub fn refresh_dataset_state(&self) {
         self.res.refetch();
     }
 
