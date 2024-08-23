@@ -3,7 +3,6 @@ use std::{str::FromStr, sync::Arc};
 use crate::images::RandomLoadingImage;
 use common::{
     api::{
-        api_wrapper::ApiAny,
         mock::ApiMock,
         routed::ApiRouteImpl,
         traits::{ZfsRemoteAPI, ZfsRemoteHighLevel},
@@ -69,18 +68,15 @@ pub fn App() -> impl IntoView {
         create_local_resource(|| (), move |_| async { retrieve_config().await });
 
     let after_config_view = move || {
-        configuration_getter.and_then(|config| {
-            let api: ApiAny = match config.mode.clone() {
-                common::config::LiveOrMock::Live(s) => {
-                    log("Initializing live object");
-                    ApiRouteImpl::new_from_config(s).into()
-                }
-                common::config::LiveOrMock::Mock(m) => {
-                    log("Initializing mock object");
-                    ApiMock::new_from_config(m).into()
-                }
-            };
-            view! { <ZfsUnlockTable api=api.clone() /> }
+        configuration_getter.and_then(|config| match config.mode.clone() {
+            common::config::LiveOrMock::Live(s) => {
+                log("Initializing live object");
+                view! { <ZfsUnlockTable api=ApiRouteImpl::new_from_config(s) /> }
+            }
+            common::config::LiveOrMock::Mock(m) => {
+                log("Initializing mock object");
+                view! { <ZfsUnlockTable api=ApiMock::new_from_config(m) /> }
+            }
         })
     };
 
