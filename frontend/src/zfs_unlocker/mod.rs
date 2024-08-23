@@ -12,7 +12,6 @@ use common::{
     config::WebPageConfig,
     types::{DatasetFullMountState, DatasetsFullMountState},
 };
-use futures::FutureExt;
 use leptos::{
     component, create_action, create_local_resource, create_signal, event_target_value, view,
     CollectView, ErrorBoundary, Errors, IntoView, RwSignal, Show, SignalGet, SignalSet, SignalWith,
@@ -22,7 +21,7 @@ use remote_retriever::DatasetStateResource;
 
 const CONFIG_URL: &str = "/public/web.toml";
 
-fn log(entry: impl AsRef<str>) {
+fn log(entry: &str) {
     leptos::leptos_dom::logging::console_log(entry.as_ref());
 }
 
@@ -47,7 +46,7 @@ async fn initial_table_query<A: ZfsRemoteHighLevel + 'static>(
 async fn retrieve_config() -> Result<WebPageConfig, ConfigurationLoadError> {
     let url = CONFIG_URL;
 
-    log(format!("Retrieving config from URL: {url}"));
+    log(&format!("Retrieving config from URL: {url}"));
 
     let config_file = reqwasm::http::Request::get(url)
         .send()
@@ -166,7 +165,7 @@ fn ZfsMountInput<A: ZfsRemoteHighLevel + 'static>(
             let mount_result = api_for_mount.mount_dataset(&dataset_name).await;
             match mount_result {
                 Ok(_) => log("Mount success"),
-                Err(e) => log(format!("Mount error: {e}")),
+                Err(e) => log(&format!("Mount error: {e}")),
             }
             dataset_state_resource.refresh()
         }
@@ -248,7 +247,7 @@ fn ZfsKeyPasswordInput<A: ZfsRemoteHighLevel + 'static>(
             let load_key_result = api_for_pw.load_key(&dataset_name, &password).await;
             match load_key_result {
                 Ok(_) => log("Load key success"),
-                Err(e) => log(format!("Load key error: {e}")),
+                Err(e) => log(&format!("Load key error: {e}")),
             }
             dataset_state_resource.refresh()
         }
@@ -350,26 +349,7 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
 ) -> impl IntoView {
     let api_for_cells = api.clone();
     let dataset_state_resource = initial_mount_state.as_ref().map(|m| {
-        let dataset_name = m.dataset_name.to_string();
-        let resource = create_local_resource(
-            move || (),
-            move |_| {
-                let api = api.clone();
-                let dataset_name = dataset_name.to_string();
-                // We wrap with Some, because None is used to trigger reloading after the user submits the password
-                async move {
-                    let dataset_retrieval_result =
-                        api.encrypted_dataset_state(&dataset_name).map(Some).await;
-                    if let Err(op_err) = dataset_retrieval_result.clone().transpose() {
-                        log(format!(
-                            "Request to retrieve datasets returned an error: {op_err}"
-                        ))
-                    }
-                    dataset_retrieval_result
-                }
-            },
-        );
-        DatasetStateResource::new(m.dataset_name.to_string(), resource)
+        DatasetStateResource::new(m.dataset_name.to_string(), api, std::sync::Arc::new(log))
     });
     let api_for_name = api_for_cells.clone();
     let api_for_pw = api_for_cells.clone();
