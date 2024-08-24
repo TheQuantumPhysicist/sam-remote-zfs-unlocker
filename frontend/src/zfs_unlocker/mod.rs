@@ -22,7 +22,7 @@ use remote_retriever::DatasetStateResource;
 const CONFIG_URL: &str = "/public/web.toml";
 
 fn log(entry: &str) {
-    leptos::leptos_dom::logging::console_log(entry.as_ref());
+    leptos::leptos_dom::logging::console_log(entry);
 }
 
 #[derive(thiserror::Error, Debug, Clone)]
