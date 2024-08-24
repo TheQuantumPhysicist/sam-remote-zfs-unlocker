@@ -1,0 +1,17 @@
+[[custom_commands]]
+label = "Echo Message"
+url_endpoint = "echo-message"
+run_cmd = ["echo", "Hello, world!"]
+enabled = true
+
+[[custom_commands]]
+label = "Echo another message"
+url_endpoint = "echo-message2"
+run_cmd = ["echo", "Hey there!"]
+enabled = true
+
+[[custom_commands]]
+label = "One more echo"
+url_endpoint = "echo-message3"
+run_cmd = ["echo", "Not happening!"]
+enabled = false

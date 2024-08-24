@@ -10,10 +10,10 @@ async_channel_io = { workspace = true }
 async-trait = { workspace = true }
 gloo-timers = { workspace = true, features = ["futures"] }
 gloo-utils = "0.2"
-rand = "0.8"
-reqwasm = "0.5"
+rand = { workspace = true }
+reqwasm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-thiserror = "1.0"
-toml = "0.8"
+thiserror = { workspace = true }
+toml = { workspace = true }
 wasm-bindgen-futures = { workspace = true }

@@ -1,3 +1,4 @@
+pub mod config;
 pub mod server_run_options;
 
 use clap::{Parser, Subcommand};

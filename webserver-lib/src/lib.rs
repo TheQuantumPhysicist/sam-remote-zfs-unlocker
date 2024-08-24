@@ -11,18 +11,23 @@ use axum::{
     Json, Router,
 };
 use common::types::{
-    DatasetBody, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
-    KeyLoadedResponse,
+    AvailableCustomCommands, CustomCommandInfo, DatasetBody, DatasetFullMountState,
+    DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
 };
 use hyper::{HeaderMap, Method, StatusCode};
-use run_options::server_run_options::ServerRunOptions;
+use run_options::{
+    config::{ApiServerConfig, CustomCommand},
+    server_run_options::ServerRunOptions,
+};
 use sam_zfs_unlocker::{
     zfs_is_dataset_mounted, zfs_is_key_loaded, zfs_load_key, zfs_mount_dataset, ZfsError,
 };
 use serde_json::json;
 use state::ServerState;
-use tokio::{net::TcpListener, sync::Mutex};
+use tokio::{io::AsyncReadExt, net::TcpListener, sync::Mutex};
 use tower_http_axum::cors::{AllowMethods, CorsLayer};
+
+type StateType = Arc<Mutex<ServerState>>;
 
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::BAD_REQUEST, "Bad request")
@@ -40,6 +45,8 @@ enum Error {
     PassphraseNotProvided(String),
     #[error("ZFS passphrase for dataset {1} is not printable. Error: {0}")]
     NonPrintablePassphrase(String, String),
+    #[error("Command execution error: {0}")]
+    CommandExecution(String),
 }
 
 impl IntoResponse for Error {
@@ -50,6 +57,7 @@ impl IntoResponse for Error {
             Error::KeyNotLoadedForDataset(_) => (StatusCode::METHOD_NOT_ALLOWED, self.to_string()),
             Error::PassphraseNotProvided(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
             Error::NonPrintablePassphrase(_, _) => (StatusCode::BAD_REQUEST, self.to_string()),
+            Error::CommandExecution(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
         };
 
         (status, Json(json!({ "error": message }))).into_response()
@@ -180,17 +188,20 @@ async fn encrypted_dataset_state(
     Ok(Json::from(result.clone()))
 }
 
-fn routes() -> Router<Arc<Mutex<ServerState>>> {
-    let router = Router::new();
-
-    router
+fn zfs_routes() -> Router<StateType> {
+    let inner_routes = Router::new()
         .route("/encrypted-datasets-state", get(encrypted_datasets_state))
         .route("/encrypted-dataset-state", post(encrypted_dataset_state))
         .route("/load-key", post(load_key))
-        .route("/mount-dataset", post(mount_dataset))
+        .route("/mount-dataset", post(mount_dataset));
+
+    Router::new().nest("/zfs", inner_routes)
 }
 
-fn web_server(socket: TcpListener) -> Serve<IntoMakeService<Router>, Router> {
+fn web_server(
+    socket: TcpListener,
+    config: Option<ApiServerConfig>,
+) -> Serve<IntoMakeService<Router>, Router> {
     let state = ServerState::new();
     // Placeholder state, for future need
     let state = Arc::new(Mutex::new(state));
@@ -200,8 +211,19 @@ fn web_server(socket: TcpListener) -> Serve<IntoMakeService<Router>, Router> {
         .allow_headers(tower_http_axum::cors::Any)
         .allow_origin(tower_http_axum::cors::Any);
 
+    let custom_commands_data = config.map(|cfg| commands_to_routables(cfg.custom_commands));
+    let custom_routes = custom_commands_data
+        .as_ref()
+        .map(|cmds| routes_from_config(cmds.clone()))
+        .unwrap_or_default()
+        .route(
+            "/custom-commands-list",
+            get(|s| command_list_route_handler(s, custom_commands_data.unwrap_or_default())),
+        );
+
     let routes = Router::new()
-        .nest("/zfs", routes())
+        .merge(zfs_routes())
+        .merge(custom_routes)
         .with_state(state)
         .layer(cors_layer)
         .layer(tower_http_axum::trace::TraceLayer::new_for_http())
@@ -210,11 +232,158 @@ fn web_server(socket: TcpListener) -> Serve<IntoMakeService<Router>, Router> {
     axum::serve(socket, routes.into_make_service())
 }
 
+async fn run_command(
+    cmd_with_args: &[String],
+) -> Result<RunCommandOutput, Box<dyn std::error::Error>> {
+    let (program, args) = cmd_with_args
+        .split_first()
+        .map(|(first, rest)| (first.clone(), rest.to_vec()))
+        .ok_or("Provided an empty command")?;
+
+    let mut cmd = args
+        .iter()
+        .fold(tokio::process::Command::new(program), |mut cmd, arg| {
+            cmd.arg(arg);
+            cmd
+        });
+
+    let mut child = cmd
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| ZfsError::ListDatasetsMountPointsCallFailed(e.to_string()))?;
+
+    // Capture the stdout handle of the child process
+    let mut stdout = child.stdout.take().expect("Failed to capture stdout");
+    let mut stderr = child.stderr.take().expect("Failed to capture stderr");
+
+    // Read stdout/stderr to a string
+    let mut stdout_string = String::new();
+    AsyncReadExt::read_to_string(&mut stdout, &mut stdout_string)
+        .await
+        .map_err(|e| ZfsError::SystemError(e.to_string()))?;
+    let mut stderr_string = String::new();
+    AsyncReadExt::read_to_string(&mut stderr, &mut stderr_string)
+        .await
+        .map_err(|e| ZfsError::SystemError(e.to_string()))?;
+
+    // Wait for the zfs command to complete
+    let status = child
+        .wait()
+        .await
+        .map_err(|e| ZfsError::SystemError(e.to_string()))?;
+
+    if status.success() {
+        Ok(RunCommandOutput {
+            stdout: stdout_string,
+            stderr: stderr_string,
+        })
+    } else {
+        Err(format!(
+            "Command {} failed with error code {:?}. Stderr: {}",
+            cmd_with_args.join(" "),
+            status.code(),
+            stderr_string
+        )
+        .into())
+    }
+}
+
+async fn route_method_from_cmd(
+    State(_state): State<Arc<Mutex<ServerState>>>,
+    cmd: RoutableCommand,
+) -> Result<impl IntoResponse, Error> {
+    let result = run_command(&cmd.run_cmd)
+        .await
+        .map_err(|e| Error::CommandExecution(e.to_string()))?;
+
+    Ok(Json::from(result))
+}
+
+fn route_from_command(router: Router<StateType>, cmd: &RoutableCommand) -> Router<StateType> {
+    let cmd = cmd.clone();
+    router.route(
+        &format!("/{}", cmd.url_endpoint),
+        post(move |state| route_method_from_cmd(state, cmd)),
+    )
+}
+
+async fn command_list_route_handler(
+    State(_state): State<Arc<Mutex<ServerState>>>,
+    cmds: Vec<RoutableCommand>,
+) -> Result<impl IntoResponse, Error> {
+    let commands = cmds
+        .iter()
+        .map(|c| CustomCommandInfo {
+            label: c.label.to_string(),
+            endpoint: c.url_endpoint.to_string(),
+        })
+        .collect::<Vec<_>>();
+
+    let result = AvailableCustomCommands { commands };
+
+    Ok(Json::from(result))
+}
+
+fn routes_from_config(cmds: Vec<RoutableCommand>) -> Router<StateType> {
+    let inner_routes = cmds.iter().fold(Router::new(), route_from_command);
+
+    Router::new().nest("/custom-commands", inner_routes)
+}
+
 pub async fn start_server(options: ServerRunOptions) -> Result<(), Box<dyn std::error::Error>> {
     let bind_address = options.bind_address();
     let listener_socket = TcpListener::bind(bind_address).await?;
 
+    let config = options
+        .config_path()
+        .map(ApiServerConfig::from_file)
+        .transpose()?;
+
     log::info!("Server socket binding to {}", bind_address);
 
-    web_server(listener_socket).await.map_err(Into::into)
+    web_server(listener_socket, config)
+        .await
+        .map_err(Into::into)
+}
+
+pub fn hash_string(s: impl AsRef<str>) -> String {
+    use blake2::{Blake2b512, Digest};
+
+    let mut hasher = Blake2b512::new();
+    hasher.update(s.as_ref().as_bytes());
+    let res = hasher.finalize();
+
+    hex::encode(&res).to_ascii_lowercase()
+}
+
+#[derive(Clone, Debug)]
+struct RoutableCommand {
+    pub label: String,
+    pub url_endpoint: String,
+    pub run_cmd: Vec<String>,
+}
+
+fn endpoint_from_custom_command(cmd: &CustomCommand) -> String {
+    cmd.url_endpoint
+        .clone()
+        .unwrap_or_else(|| hash_string(cmd.label.to_string() + &cmd.run_cmd.join(" ")))
+}
+
+impl From<CustomCommand> for RoutableCommand {
+    fn from(cmd: CustomCommand) -> Self {
+        RoutableCommand {
+            url_endpoint: endpoint_from_custom_command(&cmd),
+            label: cmd.label,
+            run_cmd: cmd.run_cmd,
+        }
+    }
+}
+
+fn commands_to_routables(cmds: Vec<CustomCommand>) -> Vec<RoutableCommand> {
+    cmds.into_iter()
+        .filter(|cmd| cmd.enabled)
+        .map(Into::into)
+        .collect()
 }

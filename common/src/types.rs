@@ -40,3 +40,20 @@ pub struct DatasetsFullMountState {
 pub struct DatasetBody {
     pub dataset_name: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct RunCommandOutput {
+    pub stdout: String,
+    pub stderr: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct AvailableCustomCommands {
+    pub commands: Vec<CustomCommandInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct CustomCommandInfo {
+    pub label: String,
+    pub endpoint: String,
+}

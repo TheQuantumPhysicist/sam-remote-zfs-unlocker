@@ -7,14 +7,18 @@ edition = "2021"
 
 [dependencies]
 axum = { workspace = true }
+blake2 = { workspace = true }
+hex = { workspace = true }
 hyper = { workspace = true }
 log = { workspace = true }
+rand = { workspace = true }
 sam-zfs-unlocker = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt", "time"] }
 tower-http-axum = { workspace = true, features = ["cors", "trace"] }
+toml = { workspace = true }
 
 clap = { workspace = true, features = ["derive"] }
 common = { path = "../common/" }
