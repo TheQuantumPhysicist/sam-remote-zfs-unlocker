@@ -1,3 +1,4 @@
+mod commands;
 pub mod run_options;
 pub mod state;
 
@@ -12,7 +13,7 @@ use axum::{
 };
 use common::types::{
     AvailableCustomCommands, CustomCommandInfo, DatasetBody, DatasetFullMountState,
-    DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
+    DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse,
 };
 use hyper::{HeaderMap, Method, StatusCode};
 use run_options::{
@@ -24,7 +25,7 @@ use sam_zfs_unlocker::{
 };
 use serde_json::json;
 use state::ServerState;
-use tokio::{io::AsyncReadExt, net::TcpListener, sync::Mutex};
+use tokio::{net::TcpListener, sync::Mutex};
 use tower_http_axum::cors::{AllowMethods, CorsLayer};
 
 type StateType = Arc<Mutex<ServerState>>;
@@ -218,7 +219,9 @@ fn web_server(
         .unwrap_or_default()
         .route(
             "/custom-commands-list",
-            get(|s| command_list_route_handler(s, custom_commands_data.unwrap_or_default())),
+            get(|s| {
+                custom_commands_list_route_handler(s, custom_commands_data.unwrap_or_default())
+            }),
         );
 
     let routes = Router::new()
@@ -232,69 +235,11 @@ fn web_server(
     axum::serve(socket, routes.into_make_service())
 }
 
-async fn run_command(
-    cmd_with_args: &[String],
-) -> Result<RunCommandOutput, Box<dyn std::error::Error>> {
-    let (program, args) = cmd_with_args
-        .split_first()
-        .map(|(first, rest)| (first.clone(), rest.to_vec()))
-        .ok_or("Provided an empty command")?;
-
-    let mut cmd = args
-        .iter()
-        .fold(tokio::process::Command::new(program), |mut cmd, arg| {
-            cmd.arg(arg);
-            cmd
-        });
-
-    let mut child = cmd
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .map_err(|e| ZfsError::ListDatasetsMountPointsCallFailed(e.to_string()))?;
-
-    // Capture the stdout handle of the child process
-    let mut stdout = child.stdout.take().expect("Failed to capture stdout");
-    let mut stderr = child.stderr.take().expect("Failed to capture stderr");
-
-    // Read stdout/stderr to a string
-    let mut stdout_string = String::new();
-    AsyncReadExt::read_to_string(&mut stdout, &mut stdout_string)
-        .await
-        .map_err(|e| ZfsError::SystemError(e.to_string()))?;
-    let mut stderr_string = String::new();
-    AsyncReadExt::read_to_string(&mut stderr, &mut stderr_string)
-        .await
-        .map_err(|e| ZfsError::SystemError(e.to_string()))?;
-
-    // Wait for the zfs command to complete
-    let status = child
-        .wait()
-        .await
-        .map_err(|e| ZfsError::SystemError(e.to_string()))?;
-
-    if status.success() {
-        Ok(RunCommandOutput {
-            stdout: stdout_string,
-            stderr: stderr_string,
-        })
-    } else {
-        Err(format!(
-            "Command {} failed with error code {:?}. Stderr: {}",
-            cmd_with_args.join(" "),
-            status.code(),
-            stderr_string
-        )
-        .into())
-    }
-}
-
-async fn route_method_from_cmd(
+async fn route_handler_from_command(
     State(_state): State<Arc<Mutex<ServerState>>>,
     cmd: RoutableCommand,
 ) -> Result<impl IntoResponse, Error> {
-    let result = run_command(&cmd.run_cmd)
+    let result = commands::run_command(&cmd.run_cmd)
         .await
         .map_err(|e| Error::CommandExecution(e.to_string()))?;
 
@@ -305,11 +250,11 @@ fn route_from_command(router: Router<StateType>, cmd: &RoutableCommand) -> Route
     let cmd = cmd.clone();
     router.route(
         &format!("/{}", cmd.url_endpoint),
-        post(move |state| route_method_from_cmd(state, cmd)),
+        post(move |state| route_handler_from_command(state, cmd)),
     )
 }
 
-async fn command_list_route_handler(
+async fn custom_commands_list_route_handler(
     State(_state): State<Arc<Mutex<ServerState>>>,
     cmds: Vec<RoutableCommand>,
 ) -> Result<impl IntoResponse, Error> {
@@ -355,7 +300,7 @@ pub fn hash_string(s: impl AsRef<str>) -> String {
     hasher.update(s.as_ref().as_bytes());
     let res = hasher.finalize();
 
-    hex::encode(&res).to_ascii_lowercase()
+    hex::encode(res).to_ascii_lowercase()
 }
 
 #[derive(Clone, Debug)]
