@@ -9,6 +9,7 @@ use leptos::{create_local_resource, Resource, SignalGet, SignalSet};
 #[derive(Debug, Clone)]
 pub struct DatasetStateResource<A: ZfsRemoteHighLevel> {
     dataset_name: String,
+    api: A,
     res: Resource<(), Option<Result<DatasetFullMountState, <A as ZfsRemoteAPI>::Error>>>,
 }
 
@@ -41,9 +42,14 @@ impl<A: ZfsRemoteHighLevel + 'static> DatasetStateResource<A> {
 
     pub fn new(dataset_name: String, api: A, log_func: &'static impl Fn(&str)) -> Self {
         Self {
-            res: Self::make_resource(api, dataset_name.clone(), log_func),
+            res: Self::make_resource(api.clone(), dataset_name.clone(), log_func),
             dataset_name,
+            api,
         }
+    }
+
+    pub fn api(&self) -> &A {
+        &self.api
     }
 
     pub fn dataset_name(&self) -> &str {

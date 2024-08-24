@@ -150,7 +150,6 @@ pub fn ZfsUnlockTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView 
 
 #[component]
 fn ZfsMountInput<A: ZfsRemoteHighLevel + 'static>(
-    api: A,
     dataset_state_resource: DatasetStateResource<A>,
 ) -> impl IntoView {
     let dataset_name_for_mount = dataset_state_resource.dataset_name().to_string();
@@ -158,7 +157,7 @@ fn ZfsMountInput<A: ZfsRemoteHighLevel + 'static>(
     let dataset_state_resource_for_action = dataset_state_resource.clone();
     // This action takes the action from the user, the click, and sends it to the API to unlock the dataset
     let mount_dataset = create_action(move |_: &()| {
-        let mut api_for_mount = api.clone();
+        let mut api_for_mount = dataset_state_resource_for_action.api().clone();
         let dataset_name = dataset_name_for_mount.clone();
         let dataset_state_resource = dataset_state_resource_for_action.clone();
         async move {
@@ -210,11 +209,8 @@ fn ZfsMountInput<A: ZfsRemoteHighLevel + 'static>(
 
 #[component]
 fn ZfsRefreshInput<A: ZfsRemoteHighLevel + 'static>(
-    api: A,
     dataset_state_resource: DatasetStateResource<A>,
 ) -> impl IntoView {
-    let _api = api;
-
     move || {
         let dataset_state_resource = dataset_state_resource.clone();
         view! {
@@ -229,12 +225,11 @@ fn ZfsRefreshInput<A: ZfsRemoteHighLevel + 'static>(
 
 #[component]
 fn ZfsKeyPasswordInput<A: ZfsRemoteHighLevel + 'static>(
-    api: A,
     dataset_state_resource: DatasetStateResource<A>,
 ) -> impl IntoView {
     let dataset_name_for_pw = dataset_state_resource.dataset_name().to_string();
 
-    let api_for_pw = api.clone();
+    let api_for_pw = dataset_state_resource.api().clone();
 
     let (password_in_input, set_password_in_input) = create_signal("".to_string());
 
@@ -310,13 +305,9 @@ enum ZFSTableColumnDefinition {
 
 #[component]
 fn ZfsDatasetTableCell<A: ZfsRemoteHighLevel + 'static>(
-    api: A,
     dataset_state_resource: Option<DatasetStateResource<A>>,
     column: ZFSTableColumnDefinition,
 ) -> impl IntoView {
-    let api_for_pw = api.clone();
-    let api_for_mount = api.clone();
-
     match column {
         ZFSTableColumnDefinition::Name => match dataset_state_resource {
             Some(ds) => view! {
@@ -328,19 +319,15 @@ fn ZfsDatasetTableCell<A: ZfsRemoteHighLevel + 'static>(
             None => view! { <p>"Dataset name"</p> }.into_view(),
         },
         ZFSTableColumnDefinition::KeyLoadPassword => match dataset_state_resource {
-            Some(ds) => view! { <ZfsKeyPasswordInput api=api_for_pw dataset_state_resource=ds /> }
-                .into_view(),
+            Some(ds) => view! { <ZfsKeyPasswordInput dataset_state_resource=ds /> }.into_view(),
             None => view! { <p>"Key load"</p> }.into_view(),
         },
         ZFSTableColumnDefinition::MountButton => match dataset_state_resource {
-            Some(ds) => {
-                view! { <ZfsMountInput api=api_for_mount dataset_state_resource=ds /> }.into_view()
-            }
+            Some(ds) => view! { <ZfsMountInput dataset_state_resource=ds /> }.into_view(),
             None => view! { <p>"Mount"</p> }.into_view(),
         },
         ZFSTableColumnDefinition::RefreshButton => match dataset_state_resource {
-            Some(ds) => view! { <ZfsRefreshInput api=api_for_mount dataset_state_resource=ds /> }
-                .into_view(),
+            Some(ds) => view! { <ZfsRefreshInput dataset_state_resource=ds /> }.into_view(),
             None => view! { <p>"Refresh"</p> }.into_view(),
         },
     }
@@ -352,41 +339,32 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     initial_mount_state: Option<&'a DatasetFullMountState>,
 ) -> impl IntoView {
-    let api_for_cells = api.clone();
     let dataset_state_resource = initial_mount_state
         .as_ref()
         .map(|m| DatasetStateResource::new(m.dataset_name.to_string(), api, &log));
-    let api_for_name = api_for_cells.clone();
-    let api_for_pw = api_for_cells.clone();
-    let api_for_mount = api_for_cells.clone();
-    let api_for_refresh = api_for_cells.clone();
 
     view! {
         <tr>
             <th>
                 <ZfsDatasetTableCell
-                    api=api_for_name
                     dataset_state_resource=dataset_state_resource.clone()
                     column=ZFSTableColumnDefinition::Name
                 />
             </th>
             <th>
                 <ZfsDatasetTableCell
-                    api=api_for_pw
                     dataset_state_resource=dataset_state_resource.clone()
                     column=ZFSTableColumnDefinition::KeyLoadPassword
                 />
             </th>
             <th>
                 <ZfsDatasetTableCell
-                    api=api_for_mount
                     dataset_state_resource=dataset_state_resource.clone()
                     column=ZFSTableColumnDefinition::MountButton
                 />
             </th>
             <th>
                 <ZfsDatasetTableCell
-                    api=api_for_refresh
                     dataset_state_resource=dataset_state_resource.clone()
                     column=ZFSTableColumnDefinition::RefreshButton
                 />
