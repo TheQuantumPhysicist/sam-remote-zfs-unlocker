@@ -47,7 +47,7 @@ pub async fn run_command(cmd_with_args: &[String]) -> Result<RunCommandOutput, C
         .await
         .map_err(|e| CommandError::SystemError(e.to_string()))?;
 
-    // Wait for the zfs command to complete
+    // Wait for the command to complete
     let status = child
         .wait()
         .await
