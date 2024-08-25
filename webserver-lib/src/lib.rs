@@ -1,4 +1,5 @@
-mod commands;
+mod command_caller;
+mod custom_commands;
 pub mod run_options;
 pub mod state;
 
@@ -12,14 +13,14 @@ use axum::{
     Json, Router,
 };
 use common::types::{
-    AvailableCustomCommands, CustomCommandInfo, DatasetBody, DatasetFullMountState,
-    DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse,
+    DatasetBody, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
+    KeyLoadedResponse,
+};
+use custom_commands::{
+    commands_to_routables, custom_commands_list_route_handler, routes_from_config,
 };
 use hyper::{HeaderMap, Method, StatusCode};
-use run_options::{
-    config::{ApiServerConfig, CustomCommand},
-    server_run_options::ServerRunOptions,
-};
+use run_options::{config::ApiServerConfig, server_run_options::ServerRunOptions};
 use sam_zfs_unlocker::{
     zfs_is_dataset_mounted, zfs_is_key_loaded, zfs_load_key, zfs_mount_dataset, ZfsError,
 };
@@ -235,48 +236,6 @@ fn web_server(
     axum::serve(socket, routes.into_make_service())
 }
 
-async fn route_handler_from_command(
-    State(_state): State<Arc<Mutex<ServerState>>>,
-    cmd: RoutableCommand,
-) -> Result<impl IntoResponse, Error> {
-    let result = commands::run_command(&cmd.run_cmd)
-        .await
-        .map_err(|e| Error::CommandExecution(e.to_string()))?;
-
-    Ok(Json::from(result))
-}
-
-fn route_from_command(router: Router<StateType>, cmd: &RoutableCommand) -> Router<StateType> {
-    let cmd = cmd.clone();
-    router.route(
-        &format!("/{}", cmd.url_endpoint),
-        post(move |state| route_handler_from_command(state, cmd)),
-    )
-}
-
-async fn custom_commands_list_route_handler(
-    State(_state): State<Arc<Mutex<ServerState>>>,
-    cmds: Vec<RoutableCommand>,
-) -> Result<impl IntoResponse, Error> {
-    let commands = cmds
-        .iter()
-        .map(|c| CustomCommandInfo {
-            label: c.label.to_string(),
-            endpoint: c.url_endpoint.to_string(),
-        })
-        .collect::<Vec<_>>();
-
-    let result = AvailableCustomCommands { commands };
-
-    Ok(Json::from(result))
-}
-
-fn routes_from_config(cmds: Vec<RoutableCommand>) -> Router<StateType> {
-    let inner_routes = cmds.iter().fold(Router::new(), route_from_command);
-
-    Router::new().nest("/custom-commands", inner_routes)
-}
-
 pub async fn start_server(options: ServerRunOptions) -> Result<(), Box<dyn std::error::Error>> {
     let bind_address = options.bind_address();
     let listener_socket = TcpListener::bind(bind_address).await?;
@@ -291,44 +250,4 @@ pub async fn start_server(options: ServerRunOptions) -> Result<(), Box<dyn std::
     web_server(listener_socket, config)
         .await
         .map_err(Into::into)
-}
-
-pub fn hash_string(s: impl AsRef<str>) -> String {
-    use blake2::{Blake2b512, Digest};
-
-    let mut hasher = Blake2b512::new();
-    hasher.update(s.as_ref().as_bytes());
-    let res = hasher.finalize();
-
-    hex::encode(res).to_ascii_lowercase()
-}
-
-#[derive(Clone, Debug)]
-struct RoutableCommand {
-    pub label: String,
-    pub url_endpoint: String,
-    pub run_cmd: Vec<String>,
-}
-
-fn endpoint_from_custom_command(cmd: &CustomCommand) -> String {
-    cmd.url_endpoint
-        .clone()
-        .unwrap_or_else(|| hash_string(cmd.label.to_string() + &cmd.run_cmd.join(" ")))
-}
-
-impl From<CustomCommand> for RoutableCommand {
-    fn from(cmd: CustomCommand) -> Self {
-        RoutableCommand {
-            url_endpoint: endpoint_from_custom_command(&cmd),
-            label: cmd.label,
-            run_cmd: cmd.run_cmd,
-        }
-    }
-}
-
-fn commands_to_routables(cmds: Vec<CustomCommand>) -> Vec<RoutableCommand> {
-    cmds.into_iter()
-        .filter(|cmd| cmd.enabled)
-        .map(Into::into)
-        .collect()
 }
