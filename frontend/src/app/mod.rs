@@ -1,7 +1,9 @@
+mod cmds;
 mod config_reader;
 mod dataset_state_retriever;
 mod zfs;
 
+use cmds::CommandsTableFromConfig;
 use leptos::{component, view, CollectView, Errors, IntoView, RwSignal, SignalWith};
 use zfs::ZfsTableFromConfig;
 
@@ -11,7 +13,11 @@ fn log(entry: &str) {
 
 #[component]
 pub fn App() -> impl IntoView {
-    view! { <ZfsTableFromConfig /> }
+    view! {
+        <ZfsTableFromConfig />
+        <br />
+        <CommandsTableFromConfig />
+    }
 }
 
 fn error_fallback(errors: RwSignal<Errors>) -> impl IntoView {
