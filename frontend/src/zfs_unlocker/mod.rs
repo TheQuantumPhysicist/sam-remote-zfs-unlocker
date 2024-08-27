@@ -35,7 +35,7 @@ pub enum ConfigurationLoadError {
     FileParse(String, String),
 }
 
-async fn initial_table_query<A: ZfsRemoteHighLevel + 'static>(
+async fn zfs_table_initial_query<A: ZfsRemoteHighLevel + 'static>(
     api: A,
 ) -> Result<(A, DatasetsFullMountState), A::Error> {
     let result = api.encrypted_datasets_state().await;
@@ -123,7 +123,7 @@ pub fn ZfsUnlockTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView 
         || (),
         move |_| {
             let api = api.clone();
-            async move { initial_table_query(api).await }
+            async move { zfs_table_initial_query(api).await }
         },
     );
 
