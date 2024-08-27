@@ -1,5 +1,5 @@
 mod config_reader;
-mod remote_retriever;
+mod dataset_state_retriever;
 mod zfs;
 
 use leptos::{component, view, CollectView, Errors, IntoView, RwSignal, SignalWith};

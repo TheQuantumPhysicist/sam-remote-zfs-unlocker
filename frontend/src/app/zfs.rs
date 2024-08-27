@@ -16,6 +16,8 @@ use crate::{
     images::RandomLoadingImage,
 };
 
+use super::dataset_state_retriever::DatasetStateResource;
+
 async fn zfs_table_initial_query<A: ZfsRemoteHighLevel + 'static>(
     api: A,
 ) -> Result<(A, DatasetsFullMountState), A::Error> {
@@ -23,8 +25,6 @@ async fn zfs_table_initial_query<A: ZfsRemoteHighLevel + 'static>(
 
     result.map(|r| (api, r))
 }
-
-use super::remote_retriever::DatasetStateResource;
 
 #[component]
 pub fn ZfsTableFromConfig() -> impl IntoView {
