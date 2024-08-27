@@ -48,7 +48,7 @@ pub fn routes_from_config(cmds: Vec<RoutableCommand>) -> Router<StateType> {
     Router::new().nest("/custom-commands", inner_routes)
 }
 
-pub fn hash_string(s: impl AsRef<str>) -> String {
+fn hash_string(s: impl AsRef<str>) -> String {
     use blake2::{Blake2b512, Digest};
 
     let mut hasher = Blake2b512::new();
