@@ -4,7 +4,9 @@ use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
 use common::types::{AvailableCustomCommands, CustomCommandInfo};
 use tokio::sync::Mutex;
 
-use crate::{run_options::config::CustomCommand, state::ServerState, Error, StateType};
+use crate::{
+    run_options::config::CustomCommand, state::ServerState, Error, StateType, CUSTOM_COMMANDS_DIR,
+};
 
 async fn route_handler_from_command(
     State(_state): State<Arc<Mutex<ServerState>>>,
@@ -45,7 +47,7 @@ pub async fn custom_commands_list_route_handler(
 pub fn routes_from_config(cmds: Vec<RoutableCommand>) -> Router<StateType> {
     let inner_routes = cmds.iter().fold(Router::new(), route_from_command);
 
-    Router::new().nest("/custom-commands", inner_routes)
+    Router::new().nest(CUSTOM_COMMANDS_DIR, inner_routes)
 }
 
 fn hash_string(s: impl AsRef<str>) -> String {

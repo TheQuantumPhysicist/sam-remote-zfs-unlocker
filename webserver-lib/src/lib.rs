@@ -31,6 +31,10 @@ use tower_http_axum::cors::{AllowMethods, CorsLayer};
 
 type StateType = Arc<Mutex<ServerState>>;
 
+const ZFS_DIR: &str = "/zfs";
+const CUSTOM_COMMANDS_DIR: &str = "/custom-commands";
+const CUSTOM_COMMANDS_LIST_ENDPOINT: &str = "/custom-commands-list";
+
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::BAD_REQUEST, "Bad request")
 }
@@ -197,7 +201,7 @@ fn zfs_routes() -> Router<StateType> {
         .route("/load-key", post(load_key))
         .route("/mount-dataset", post(mount_dataset));
 
-    Router::new().nest("/zfs", inner_routes)
+    Router::new().nest(ZFS_DIR, inner_routes)
 }
 
 fn web_server(
@@ -219,7 +223,7 @@ fn web_server(
         .map(|cmds| routes_from_config(cmds.clone()))
         .unwrap_or_default()
         .route(
-            "/custom-commands-list",
+            CUSTOM_COMMANDS_LIST_ENDPOINT,
             get(|s| {
                 custom_commands_list_route_handler(s, custom_commands_data.unwrap_or_default())
             }),
