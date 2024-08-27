@@ -12,8 +12,8 @@ use leptos::{
 };
 
 use crate::{
+    app::{config_reader::retrieve_config, error_fallback, log},
     images::RandomLoadingImage,
-    zfs_unlocker::{config_reader::retrieve_config, error_fallback, log},
 };
 
 async fn zfs_table_initial_query<A: ZfsRemoteHighLevel + 'static>(
