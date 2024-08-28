@@ -34,6 +34,7 @@ pub trait ZfsRemoteAPI: Clone {
     async fn call_custom_command(
         &mut self,
         endpoint: &str,
+        stdin: Option<&str>,
     ) -> Result<RunCommandOutput, Self::Error>;
 }
 

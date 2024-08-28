@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
-use common::types::{AvailableCustomCommands, CustomCommandInfo};
+use common::types::{AvailableCustomCommands, CustomCommandInfo, CustomCommandRunOptions};
 use tokio::sync::Mutex;
 
 use crate::{
@@ -10,9 +10,11 @@ use crate::{
 
 async fn route_handler_from_command(
     State(_state): State<Arc<Mutex<ServerState>>>,
+    json_body: Option<Json<CustomCommandRunOptions>>,
     cmd: RoutableCommand,
 ) -> Result<impl IntoResponse, Error> {
-    let result = crate::command_caller::run_command(&cmd.run_cmd)
+    let stdin = json_body.map(|b| b.stdin.clone()).flatten();
+    let result = crate::command_caller::run_command(&cmd.run_cmd, stdin)
         .await
         .map_err(|e| Error::CommandExecution(e.to_string()))?;
 
@@ -23,7 +25,7 @@ fn route_from_command(router: Router<StateType>, cmd: &RoutableCommand) -> Route
     let cmd = cmd.clone();
     router.route(
         &format!("/{}", cmd.url_endpoint),
-        post(move |state| route_handler_from_command(state, cmd)),
+        post(move |state, json| route_handler_from_command(state, json, cmd)),
     )
 }
 
@@ -36,6 +38,7 @@ pub async fn custom_commands_list_route_handler(
         .map(|c| CustomCommandInfo {
             label: c.label.to_string(),
             endpoint: c.url_endpoint.to_string(),
+            allow_stdin: c.allow_stdin,
         })
         .collect::<Vec<_>>();
 
@@ -65,6 +68,7 @@ pub struct RoutableCommand {
     pub label: String,
     pub url_endpoint: String,
     pub run_cmd: Vec<String>,
+    pub allow_stdin: bool,
 }
 
 fn endpoint_from_custom_command(cmd: &CustomCommand) -> String {
@@ -79,6 +83,7 @@ impl From<CustomCommand> for RoutableCommand {
             url_endpoint: endpoint_from_custom_command(&cmd),
             label: cmd.label,
             run_cmd: cmd.run_cmd,
+            allow_stdin: cmd.allow_stdin,
         }
     }
 }

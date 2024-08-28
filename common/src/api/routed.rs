@@ -7,8 +7,8 @@ use serde::Deserialize;
 use crate::{
     config::LiveSettings,
     types::{
-        AvailableCustomCommands, DatasetBody, DatasetFullMountState, DatasetMountedResponse,
-        DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
+        AvailableCustomCommands, CustomCommandRunOptions, DatasetBody, DatasetFullMountState,
+        DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
     },
 };
 
@@ -101,9 +101,17 @@ impl ZfsRemoteAPI for ApiRouteImpl {
     async fn call_custom_command(
         &mut self,
         endpoint: &str,
+        stdin: Option<&str>,
     ) -> Result<RunCommandOutput, Self::Error> {
         let url = format!("{}/custom-commands/{}", self.base_url, endpoint);
-        do_post_request::<_, ()>(&url, None, [].into_iter().collect()).await
+        do_post_request(
+            &url,
+            Some(CustomCommandRunOptions {
+                stdin: stdin.map(|v| v.to_string()),
+            }),
+            [].into_iter().collect(),
+        )
+        .await
     }
 }
 

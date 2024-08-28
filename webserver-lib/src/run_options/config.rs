@@ -40,6 +40,8 @@ pub struct CustomCommand {
     pub url_endpoint: Option<String>,
     /// Command to run to activate something
     pub run_cmd: Vec<String>,
+    /// Whether to enable piping some input string into the command
+    pub allow_stdin: bool,
 
     #[serde(default = "default_true")]
     pub enabled: bool,

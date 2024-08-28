@@ -1,5 +1,5 @@
 use common::types::RunCommandOutput;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt, BufWriter};
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum CommandError {
@@ -9,9 +9,14 @@ pub enum CommandError {
     CallFailed(String),
     #[error("System error: {0}")]
     SystemError(String),
+    #[error("Failed to retrieve stdin system pipe")]
+    StdinPipe,
 }
 
-pub async fn run_command(cmd_with_args: &[String]) -> Result<RunCommandOutput, CommandError> {
+pub async fn run_command(
+    cmd_with_args: &[String],
+    stdin: Option<String>,
+) -> Result<RunCommandOutput, CommandError> {
     let (program, args) = cmd_with_args
         .split_first()
         .map(|(first, rest)| (first.clone(), rest.to_vec()))
@@ -30,6 +35,29 @@ pub async fn run_command(cmd_with_args: &[String]) -> Result<RunCommandOutput, C
         .stderr(std::process::Stdio::piped())
         .spawn()
         .map_err(|e| CommandError::CallFailed(e.to_string()))?;
+
+    // Pipe stdin, if desired by the caller
+    if let Some(stdin_string) = stdin {
+        match child.stdin.as_mut() {
+            Some(mut stdin_pipe) => {
+                // Write the key to stdin
+                let mut writer = BufWriter::new(&mut stdin_pipe);
+                writer
+                    .write_all(stdin_string.as_bytes())
+                    .await
+                    .map_err(|e| CommandError::SystemError(e.to_string()))?;
+                writer
+                    .write(&['\n' as u8])
+                    .await
+                    .map_err(|e| CommandError::SystemError(e.to_string()))?;
+                writer
+                    .flush()
+                    .await
+                    .map_err(|e| CommandError::SystemError(e.to_string()))?;
+            }
+            None => return Err(CommandError::StdinPipe),
+        }
+    }
 
     // Capture the stdout handle of the child process
     let mut stdout = child.stdout.take().expect("Failed to capture stdout");

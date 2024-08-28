@@ -90,10 +90,17 @@ impl ZfsRemoteAPI for ApiAny {
     async fn call_custom_command(
         &mut self,
         endpoint: &str,
+        stdin: Option<&str>,
     ) -> Result<RunCommandOutput, Self::Error> {
         match self {
-            ApiAny::Live(e) => e.call_custom_command(endpoint).await.map_err(Into::into),
-            ApiAny::Mock(e) => e.call_custom_command(endpoint).await.map_err(Into::into),
+            ApiAny::Live(e) => e
+                .call_custom_command(endpoint, stdin)
+                .await
+                .map_err(Into::into),
+            ApiAny::Mock(e) => e
+                .call_custom_command(endpoint, stdin)
+                .await
+                .map_err(Into::into),
         }
     }
 }

@@ -63,13 +63,14 @@ impl ApiMock {
             .unwrap_or_default()
             .into_iter()
             .map(
-                |(cmd, expected_stdout, expected_stderr, expected_error_code)| {
+                |(cmd, expected_stdout, expected_stderr, expected_error_code, allow_stdin)| {
                     (
                         cmd.to_string(),
                         MockCustomCommandDetails {
                             cmd: CustomCommandInfo {
                                 label: cmd,
                                 endpoint: "".to_string(),
+                                allow_stdin,
                             },
                             expected_stdout,
                             expected_stderr,
@@ -222,6 +223,7 @@ impl ZfsRemoteAPI for ApiMock {
     async fn call_custom_command(
         &mut self,
         endpoint: &str,
+        stdin: Option<&str>,
     ) -> Result<RunCommandOutput, Self::Error> {
         sleep_for_dramatic_effect().await;
 
@@ -232,11 +234,18 @@ impl ZfsRemoteAPI for ApiMock {
             .get(endpoint)
             .ok_or(ApiMockError::CustomCommandNotFound(endpoint.to_string()))?;
 
-        Ok(RunCommandOutput {
-            stdout: format!("{}: {}", cmd.expected_stdout, cmd.call_counter),
-            stderr: format!("{}: {}", cmd.expected_stderr, cmd.call_counter),
-            error_code: cmd.expected_error_code,
-        })
+        match stdin {
+            Some(s) => Ok(RunCommandOutput {
+                stdout: format!("{}: {} - piped: {s}", cmd.expected_stdout, cmd.call_counter),
+                stderr: format!("{}: {}", cmd.expected_stderr, cmd.call_counter),
+                error_code: cmd.expected_error_code,
+            }),
+            None => Ok(RunCommandOutput {
+                stdout: format!("{}: {}", cmd.expected_stdout, cmd.call_counter),
+                stderr: format!("{}: {}", cmd.expected_stderr, cmd.call_counter),
+                error_code: cmd.expected_error_code,
+            }),
+        }
     }
 }
 

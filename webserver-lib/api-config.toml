@@ -2,16 +2,26 @@
 label = "Echo Message"
 url_endpoint = "echo-message"
 run_cmd = ["echo", "Hello, world!"]
+allow_stdin = false
 enabled = true
 
 [[custom_commands]]
 label = "Echo another message"
 url_endpoint = "echo-message2"
 run_cmd = ["echo", "Hey there!"]
+allow_stdin = false
+enabled = true
+
+[[custom_commands]]
+label = "Combine with stdin"
+url_endpoint = "echo-message2"
+run_cmd = ["awk", "'{print $0, \"World!\"}'"]
+allow_stdin = true
 enabled = true
 
 [[custom_commands]]
 label = "One more echo"
 url_endpoint = "echo-message3"
 run_cmd = ["echo", "Not happening!"]
+allow_stdin = false
 enabled = false

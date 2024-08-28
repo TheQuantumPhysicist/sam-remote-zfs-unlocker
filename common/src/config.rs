@@ -6,8 +6,9 @@ use serde::{Deserialize, Serialize};
 pub struct MockSettings {
     // Dataset name, password, probability of failure
     pub datasets_and_passwords: Option<Vec<(String, String, f32)>>,
-    // Command label, expected stdout, expected stderr, expected error code
-    pub commands: Option<Vec<(String, String, String, i32)>>,
+    #[allow(clippy::type_complexity)]
+    // Command label, expected stdout, expected stderr, expected error code, allow stdin
+    pub commands: Option<Vec<(String, String, String, i32, bool)>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
