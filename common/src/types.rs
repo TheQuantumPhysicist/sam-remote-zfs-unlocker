@@ -45,6 +45,7 @@ pub struct DatasetBody {
 pub struct RunCommandOutput {
     pub stdout: String,
     pub stderr: String,
+    pub error_code: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]

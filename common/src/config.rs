@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MockSettings {
+    // Dataset name, password, probability of failure
     pub datasets_and_passwords: Option<Vec<(String, String, f32)>>,
-    pub commands: Option<Vec<String>>,
+    // Command label, expected stdout, expected stderr, expected error code
+    pub commands: Option<Vec<(String, String, String, i32)>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

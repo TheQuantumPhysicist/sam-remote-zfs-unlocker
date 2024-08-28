@@ -9,7 +9,7 @@ use crate::{
     config::MockSettings,
     types::{
         AvailableCustomCommands, CustomCommandInfo, DatasetFullMountState, DatasetMountedResponse,
-        DatasetsFullMountState, KeyLoadedResponse,
+        DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
     },
 };
 
@@ -25,6 +25,8 @@ pub enum ApiMockError {
     CannotUnlockKeyForMountDataset(String),
     #[error("Simulated error for dataset: {0}")]
     SimulatedError(String),
+    #[error("Custom command not found: {0}")]
+    CustomCommandNotFound(String),
 }
 
 #[derive(Debug, Clone)]
@@ -34,9 +36,19 @@ pub struct MockDatasetDetails {
     // While doing requests, this is a number [0,1] that will be used to randomly generate errors
     error_probability: f32,
 }
+
+#[derive(Debug, Clone)]
+pub struct MockCustomCommandDetails {
+    cmd: CustomCommandInfo,
+    expected_stdout: String,
+    expected_stderr: String,
+    expected_error_code: i32,
+    call_counter: u64,
+}
+
 struct ApiMockInner {
     state: BTreeMap<String, MockDatasetDetails>,
-    available_commands: Vec<CustomCommandInfo>,
+    available_commands: BTreeMap<String, MockCustomCommandDetails>,
 }
 
 #[derive(Clone)]
@@ -45,56 +57,29 @@ pub struct ApiMock {
 }
 
 impl ApiMock {
-    pub fn new(
-        dataset_names_and_password: Vec<(String, String, f32)>,
-        available_commands: Vec<String>,
-    ) -> Self {
-        let cmds = available_commands
-            .into_iter()
-            .map(|cmd| CustomCommandInfo {
-                label: cmd,
-                endpoint: "".to_string(),
-            })
-            .collect::<Vec<_>>();
-
-        let state = dataset_names_and_password
-            .into_iter()
-            .map(move |(ds_name, password, err_prob)| {
-                (
-                    ds_name.to_string(),
-                    MockDatasetDetails {
-                        state: DatasetFullMountState {
-                            dataset_name: ds_name,
-                            key_loaded: false,
-                            is_mounted: false,
-                        },
-                        unlock_password: password,
-                        error_probability: err_prob,
-                    },
-                )
-            })
-            .collect();
-
-        let result = ApiMockInner {
-            state,
-            available_commands: cmds,
-        };
-
-        Self {
-            inner: Arc::new(result.into()),
-        }
-    }
-
     pub fn new_from_config(config: MockSettings) -> Self {
         let cmds = config
             .commands
             .unwrap_or_default()
             .into_iter()
-            .map(|cmd| CustomCommandInfo {
-                label: cmd,
-                endpoint: "".to_string(),
-            })
-            .collect::<Vec<_>>();
+            .map(
+                |(cmd, expected_stdout, expected_stderr, expected_error_code)| {
+                    (
+                        cmd.to_string(),
+                        MockCustomCommandDetails {
+                            cmd: CustomCommandInfo {
+                                label: cmd,
+                                endpoint: "".to_string(),
+                            },
+                            expected_stdout,
+                            expected_stderr,
+                            expected_error_code,
+                            call_counter: 0,
+                        },
+                    )
+                },
+            )
+            .collect::<BTreeMap<_, _>>();
 
         let state = config
             .datasets_and_passwords
@@ -118,7 +103,7 @@ impl ApiMock {
 
         let result = ApiMockInner {
             state,
-            available_commands: cmds.clone(),
+            available_commands: cmds,
         };
 
         Self {
@@ -226,7 +211,31 @@ impl ZfsRemoteAPI for ApiMock {
         let inner = self.inner.lock().expect("Poisoned mutex");
 
         Ok(AvailableCustomCommands {
-            commands: inner.available_commands.clone(),
+            commands: inner
+                .available_commands
+                .values()
+                .map(|c| c.cmd.clone())
+                .collect(),
+        })
+    }
+
+    async fn call_custom_command(
+        &mut self,
+        endpoint: &str,
+    ) -> Result<RunCommandOutput, Self::Error> {
+        sleep_for_dramatic_effect().await;
+
+        let inner = self.inner.lock().expect("Poisoned mutex");
+
+        let cmd = inner
+            .available_commands
+            .get(endpoint)
+            .ok_or(ApiMockError::CustomCommandNotFound(endpoint.to_string()))?;
+
+        Ok(RunCommandOutput {
+            stdout: format!("{}: {}", cmd.expected_stdout, cmd.call_counter),
+            stderr: format!("{}: {}", cmd.expected_stderr, cmd.call_counter),
+            error_code: cmd.expected_error_code,
         })
     }
 }

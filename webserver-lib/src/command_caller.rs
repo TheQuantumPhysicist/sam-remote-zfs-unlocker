@@ -9,8 +9,6 @@ pub enum CommandError {
     CallFailed(String),
     #[error("System error: {0}")]
     SystemError(String),
-    #[error("Command {0} failed with error code {1:?}. Stderr: {2}")]
-    CallResultError(String, Option<i32>, String),
 }
 
 pub async fn run_command(cmd_with_args: &[String]) -> Result<RunCommandOutput, CommandError> {
@@ -57,12 +55,13 @@ pub async fn run_command(cmd_with_args: &[String]) -> Result<RunCommandOutput, C
         Ok(RunCommandOutput {
             stdout: stdout_string,
             stderr: stderr_string,
+            error_code: status.code().unwrap_or(0),
         })
     } else {
-        Err(CommandError::CallResultError(
-            cmd_with_args.join(" "),
-            status.code(),
-            stderr_string,
-        ))
+        Ok(RunCommandOutput {
+            stdout: stdout_string,
+            stderr: stderr_string,
+            error_code: status.code().unwrap_or(255),
+        })
     }
 }

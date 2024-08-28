@@ -8,7 +8,7 @@ use crate::{
     config::LiveSettings,
     types::{
         AvailableCustomCommands, DatasetBody, DatasetFullMountState, DatasetMountedResponse,
-        DatasetsFullMountState, KeyLoadedResponse,
+        DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
     },
 };
 
@@ -96,6 +96,14 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         let url = format!("{}/custom-commands-list", self.base_url);
 
         do_get_request(&url).await
+    }
+
+    async fn call_custom_command(
+        &mut self,
+        endpoint: &str,
+    ) -> Result<RunCommandOutput, Self::Error> {
+        let url = format!("{}/custom-commands/{}", self.base_url, endpoint);
+        do_post_request::<_, ()>(&url, None, [].into_iter().collect()).await
     }
 }
 

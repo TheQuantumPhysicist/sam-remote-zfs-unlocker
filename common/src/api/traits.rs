@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::types::{
     AvailableCustomCommands, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
-    KeyLoadedResponse,
+    KeyLoadedResponse, RunCommandOutput,
 };
 use async_trait::async_trait;
 use reqwasm::http;
@@ -30,6 +30,11 @@ pub trait ZfsRemoteAPI: Clone {
     ) -> Result<DatasetMountedResponse, Self::Error>;
 
     async fn list_available_commands(&self) -> Result<AvailableCustomCommands, Self::Error>;
+
+    async fn call_custom_command(
+        &mut self,
+        endpoint: &str,
+    ) -> Result<RunCommandOutput, Self::Error>;
 }
 
 #[async_trait(?Send)]
