@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::types::{
-    DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse,
+    AvailableCustomCommands, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
+    KeyLoadedResponse,
 };
 use async_trait::async_trait;
 use reqwasm::http;
@@ -11,19 +12,24 @@ pub trait ZfsRemoteAPI: Clone {
     type Error: std::error::Error + Send + Sync + Clone + 'static;
 
     async fn encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error>;
+
     async fn encrypted_dataset_state(
         &self,
         dataset_name: &str,
     ) -> Result<DatasetFullMountState, Self::Error>;
+
     async fn load_key(
         &mut self,
         dataset_name: &str,
         password: &str,
     ) -> Result<KeyLoadedResponse, Self::Error>;
+
     async fn mount_dataset(
         &mut self,
         dataset_name: &str,
     ) -> Result<DatasetMountedResponse, Self::Error>;
+
+    async fn list_available_commands(&self) -> Result<AvailableCustomCommands, Self::Error>;
 }
 
 #[async_trait(?Send)]

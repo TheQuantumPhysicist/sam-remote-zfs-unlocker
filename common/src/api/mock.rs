@@ -8,7 +8,8 @@ use async_trait::async_trait;
 use crate::{
     config::MockSettings,
     types::{
-        DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse,
+        AvailableCustomCommands, CustomCommandInfo, DatasetFullMountState, DatasetMountedResponse,
+        DatasetsFullMountState, KeyLoadedResponse,
     },
 };
 
@@ -35,6 +36,7 @@ pub struct MockDatasetDetails {
 }
 struct ApiMockInner {
     state: BTreeMap<String, MockDatasetDetails>,
+    available_commands: Vec<CustomCommandInfo>,
 }
 
 #[derive(Clone)]
@@ -43,10 +45,21 @@ pub struct ApiMock {
 }
 
 impl ApiMock {
-    pub fn new(dataset_names_and_password: Vec<(String, String, f32)>) -> Self {
+    pub fn new(
+        dataset_names_and_password: Vec<(String, String, f32)>,
+        available_commands: Vec<String>,
+    ) -> Self {
+        let cmds = available_commands
+            .into_iter()
+            .map(|cmd| CustomCommandInfo {
+                label: cmd,
+                endpoint: "".to_string(),
+            })
+            .collect::<Vec<_>>();
+
         let state = dataset_names_and_password
             .into_iter()
-            .map(|(ds_name, password, err_prob)| {
+            .map(move |(ds_name, password, err_prob)| {
                 (
                     ds_name.to_string(),
                     MockDatasetDetails {
@@ -62,7 +75,10 @@ impl ApiMock {
             })
             .collect();
 
-        let result = ApiMockInner { state };
+        let result = ApiMockInner {
+            state,
+            available_commands: cmds,
+        };
 
         Self {
             inner: Arc::new(result.into()),
@@ -70,6 +86,16 @@ impl ApiMock {
     }
 
     pub fn new_from_config(config: MockSettings) -> Self {
+        let cmds = config
+            .commands
+            .unwrap_or_default()
+            .into_iter()
+            .map(|cmd| CustomCommandInfo {
+                label: cmd,
+                endpoint: "".to_string(),
+            })
+            .collect::<Vec<_>>();
+
         let state = config
             .datasets_and_passwords
             .unwrap_or_default()
@@ -90,7 +116,10 @@ impl ApiMock {
             })
             .collect();
 
-        let result = ApiMockInner { state };
+        let result = ApiMockInner {
+            state,
+            available_commands: cmds.clone(),
+        };
 
         Self {
             inner: Arc::new(result.into()),
@@ -189,6 +218,16 @@ impl ZfsRemoteAPI for ApiMock {
         }
 
         Ok(dataset_details.state.clone())
+    }
+
+    async fn list_available_commands(&self) -> Result<AvailableCustomCommands, Self::Error> {
+        sleep_for_dramatic_effect().await;
+
+        let inner = self.inner.lock().expect("Poisoned mutex");
+
+        Ok(AvailableCustomCommands {
+            commands: inner.available_commands.clone(),
+        })
     }
 }
 

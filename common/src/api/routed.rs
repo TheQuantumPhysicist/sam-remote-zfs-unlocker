@@ -7,8 +7,8 @@ use serde::Deserialize;
 use crate::{
     config::LiveSettings,
     types::{
-        DatasetBody, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
-        KeyLoadedResponse,
+        AvailableCustomCommands, DatasetBody, DatasetFullMountState, DatasetMountedResponse,
+        DatasetsFullMountState, KeyLoadedResponse,
     },
 };
 
@@ -90,6 +90,12 @@ impl ZfsRemoteAPI for ApiRouteImpl {
             [].into_iter().collect(),
         )
         .await
+    }
+
+    async fn list_available_commands(&self) -> Result<AvailableCustomCommands, Self::Error> {
+        let url = format!("{}/custom-commands-list", self.base_url);
+
+        do_get_request(&url).await
     }
 }
 

@@ -52,7 +52,7 @@ pub struct AvailableCustomCommands {
     pub commands: Vec<CustomCommandInfo>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct CustomCommandInfo {
     pub label: String,
     pub endpoint: String,

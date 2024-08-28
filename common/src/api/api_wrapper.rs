@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 
 use crate::types::{
-    DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse,
+    AvailableCustomCommands, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
+    KeyLoadedResponse,
 };
 
 use super::{
@@ -76,6 +77,13 @@ impl ZfsRemoteAPI for ApiAny {
         match self {
             ApiAny::Live(e) => e.mount_dataset(dataset_name).await.map_err(Into::into),
             ApiAny::Mock(e) => e.mount_dataset(dataset_name).await.map_err(Into::into),
+        }
+    }
+
+    async fn list_available_commands(&self) -> Result<AvailableCustomCommands, Self::Error> {
+        match self {
+            ApiAny::Live(e) => e.list_available_commands().await.map_err(Into::into),
+            ApiAny::Mock(e) => e.list_available_commands().await.map_err(Into::into),
         }
     }
 }
