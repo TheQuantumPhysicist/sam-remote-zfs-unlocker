@@ -13,7 +13,7 @@ async fn route_handler_from_command(
     json_body: Option<Json<CustomCommandRunOptions>>,
     cmd: RoutableCommand,
 ) -> Result<impl IntoResponse, Error> {
-    let stdin = json_body.map(|b| b.stdin.clone()).flatten();
+    let stdin = json_body.and_then(|b| b.stdin.clone());
     let result = crate::command_caller::run_command(&cmd.run_cmd, stdin)
         .await
         .map_err(|e| Error::CommandExecution(e.to_string()))?;

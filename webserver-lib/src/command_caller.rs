@@ -47,7 +47,7 @@ pub async fn run_command(
                     .await
                     .map_err(|e| CommandError::SystemError(e.to_string()))?;
                 writer
-                    .write(&['\n' as u8])
+                    .write(&[b'\n'])
                     .await
                     .map_err(|e| CommandError::SystemError(e.to_string()))?;
                 writer
