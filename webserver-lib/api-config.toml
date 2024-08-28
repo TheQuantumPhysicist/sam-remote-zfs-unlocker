@@ -15,7 +15,7 @@ enabled = true
 [[custom_commands]]
 label = "Combine with stdin"
 url_endpoint = "echo-message2"
-run_cmd = ["awk", "'{print $0, \"World!\"}'"]
+run_cmd = ["sed", "'s/$/ World!/'"]
 allow_stdin = true
 enabled = true
 
