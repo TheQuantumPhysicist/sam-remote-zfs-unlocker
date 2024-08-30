@@ -16,9 +16,11 @@ fn log(entry: &str) {
 #[component]
 pub fn App() -> impl IntoView {
     view! {
-        <ZfsTableFromConfig />
-        <br />
+        <h3 align="center">"Custom commands"</h3>
         <CommandsTableFromConfig />
+        <hr />
+        <h3 align="center">"ZFS datasets"</h3>
+        <ZfsTableFromConfig />
     }
 }
 
