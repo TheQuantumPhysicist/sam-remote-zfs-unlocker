@@ -7,12 +7,13 @@ use common::{
     types::{AvailableCustomCommands, CustomCommandInfo, RunCommandOutput},
 };
 use leptos::{
-    component, create_action, create_local_resource, create_signal, event_target_value, view,
-    CollectView, ErrorBoundary, IntoView, Show, SignalGet, SignalSet, Transition,
+    component, create_action, create_local_resource, create_rw_signal, create_signal,
+    event_target_value, view, CollectView, ErrorBoundary, IntoView, Show, SignalGet, SignalSet,
+    Transition,
 };
 
 use crate::{
-    app::{config_reader::retrieve_config, error_fallback, log},
+    app::{config_reader::retrieve_config, error_fallback, log, modal::Modal},
     images::RandomLoadingImage,
 };
 
@@ -30,7 +31,6 @@ pub fn CommandsTableFromConfig() -> impl IntoView {
                 view! { <CommandsTable api=ApiRouteImpl::new_from_config(s) /> }
             }
             common::config::LiveOrMock::Mock(m) => {
-                log(&format!("Config loaded: {:?}", config));
                 log("Initializing mock object for commands table");
                 view! { <CommandsTable api=ApiMock::new_from_config(m) /> }
             }
@@ -130,7 +130,7 @@ fn CommandCallsTable<'a, A: ZfsRemoteHighLevel + 'static>(
 
 #[component]
 fn NoCommandsAvailable() -> impl IntoView {
-    view! { <p>"No commands available to show"</p> }
+    view! { <p>"No commands available to execute"</p> }
 }
 
 enum CustomCommandsTableColumnDefinition {
@@ -227,7 +227,22 @@ fn CommandExecuteCell<A: ZfsRemoteHighLevel + 'static>(
 
 #[component]
 fn StdOutputFormatted(output: String) -> impl IntoView {
-    view! { <p>{output}</p> }
+    let open_dialog = create_rw_signal(false);
+
+    view! {
+        <button on:click=move |_| open_dialog.set(true)>"Show result"</button>
+        <Modal
+            open=open_dialog
+            on_close=move || {}
+            children=move || {
+                {
+                    view! { <p class="custom-commands-std-output">{output}</p> }
+                }
+                    .into_view()
+                    .into()
+            }
+        />
+    }
 }
 
 #[component]

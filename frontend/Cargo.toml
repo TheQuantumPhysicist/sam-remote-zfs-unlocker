@@ -14,6 +14,7 @@ leptos = { version = "0.6", features = ["csr"] }
 rand = "0.8"
 reqwasm = "0.5"
 thiserror = "1.0"
+web-sys = { version = "0.3", features = ["DomRect"] }
 
 wasm-bindgen-futures = { workspace = true }
 

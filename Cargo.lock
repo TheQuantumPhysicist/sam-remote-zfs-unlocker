@@ -605,6 +605,7 @@ dependencies = [
  "reqwasm",
  "thiserror",
  "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
