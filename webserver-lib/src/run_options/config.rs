@@ -6,7 +6,11 @@ use serde::{Deserialize, Deserializer, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ApiServerConfig {
-    #[serde(default, deserialize_with = "validate_commands_list")]
+    #[serde(
+        default,
+        deserialize_with = "validate_commands_list",
+        rename = "custom_command"
+    )]
     pub custom_commands: Vec<CustomCommand>,
 }
 
@@ -42,10 +46,13 @@ pub struct CustomCommand {
     /// Command to run to activate something
     pub run_cmd: Vec<String>,
     /// Whether to enable piping some input string into the command
+    #[serde(default)]
     pub stdin_allow: bool,
     /// The definition of the text to be input in stdin... something like "Email address", or "Password", etc.
+    #[serde(default)]
     pub stdin_placeholder_text: String,
     /// The definition of the text to be input in stdin... something like "Email address", or "Password", etc.
+    #[serde(default = "default_true")]
     pub stdin_is_password: bool,
 
     #[serde(default = "default_true")]
@@ -131,6 +138,7 @@ mod tests {
     #[test]
     fn basic() {
         let _config = ApiServerConfig::from_file("api-config.toml").unwrap();
-        println!("{_config:?}");
+        // println!("{_config:?}");
+        // println!("{}", toml::to_string_pretty(&_config).unwrap());
     }
 }

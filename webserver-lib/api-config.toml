@@ -1,27 +1,30 @@
-[[custom_commands]]
+[[custom_command]]
 label = "Echo Message"
 url_endpoint = "echo-message"
 run_cmd = ["echo", "Hello, world!"]
-allow_stdin = false
+stdin_allow = false
 enabled = true
 
-[[custom_commands]]
+[[custom_command]]
 label = "Echo another message"
 url_endpoint = "echo-message2"
 run_cmd = ["echo", "Hey there!"]
-allow_stdin = false
-enabled = true
+stdin_allow = false
+enabled = false
 
-[[custom_commands]]
+[[custom_command]]
 label = "Combine with stdin"
 url_endpoint = "echo-message2"
 run_cmd = ["sed", "'s/$/ World!/'"]
-allow_stdin = true
+stdin_allow = true
+stdin_placeholder_text = "What else to echo?"
+stdin_is_password = false
 enabled = true
 
-[[custom_commands]]
+[[custom_command]]
 label = "One more echo"
 url_endpoint = "echo-message3"
 run_cmd = ["echo", "Not happening!"]
-allow_stdin = false
+stdin_allow = false
+stdin_placeholder_text = ""
 enabled = false
