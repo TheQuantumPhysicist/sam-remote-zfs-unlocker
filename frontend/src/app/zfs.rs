@@ -209,6 +209,7 @@ fn ZfsKeyPasswordInput<A: ZfsRemoteHighLevel + 'static>(
                         view! {
                             <input
                                 type="password"
+                                placeholder="Enter dataset password"
                                 on:input=move |ev| {
                                     set_password_in_input.set(event_target_value(&ev));
                                 }
