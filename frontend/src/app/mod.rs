@@ -1,4 +1,5 @@
 mod cmds;
+mod command_communicator;
 mod config_reader;
 mod dataset_state_retriever;
 mod zfs;

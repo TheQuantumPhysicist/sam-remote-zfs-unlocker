@@ -41,14 +41,14 @@ pub struct DatasetBody {
     pub dataset_name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct RunCommandOutput {
     pub stdout: String,
     pub stderr: String,
     pub error_code: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct AvailableCustomCommands {
     pub commands: Vec<CustomCommandInfo>,
 }

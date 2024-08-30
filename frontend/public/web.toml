@@ -13,3 +13,9 @@ datasets_and_passwords = [
     ["dataset4", "password4", 0.1],
     ["dataset5", "password5", 0.1]
 ]
+
+commands = [
+    ["Echo hello", "Hello world!", "Hello error!", 0, true],
+    ["Echo another", "Hello another world!", "Hello another error!", 1, false],
+    ["Echo even another", "Hello even another world!", "Hello even another error!", 5, false]
+]

@@ -3,6 +3,7 @@ use std::{path::Path, str::FromStr};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct MockSettings {
     // Dataset name, password, probability of failure
     pub datasets_and_passwords: Option<Vec<(String, String, f32)>>,
@@ -25,6 +26,7 @@ pub enum LiveOrMock {
 
 #[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct WebPageConfig {
     pub mode: LiveOrMock,
 }

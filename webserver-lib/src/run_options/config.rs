@@ -1,4 +1,4 @@
-use std::{path::Path, str::FromStr};
+use std::{collections::BTreeSet, path::Path, str::FromStr};
 
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -6,6 +6,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ApiServerConfig {
+    #[serde(default, deserialize_with = "validate_commands_list")]
     pub custom_commands: Vec<CustomCommand>,
 }
 
@@ -73,6 +74,46 @@ where
     }
 
     Ok(s)
+}
+
+// Custom deserialization function to validate the label field
+fn validate_commands_list<'de, D>(deserializer: D) -> Result<Vec<CustomCommand>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let cmds: Vec<CustomCommand> = Deserialize::deserialize(deserializer)?;
+
+    // Find duplicates in commands
+    {
+        let mut seen: BTreeSet<&Vec<String>> = BTreeSet::new();
+        for item in cmds.iter().filter(|cmd| cmd.enabled) {
+            if !seen.insert(&item.run_cmd) {
+                return Err(serde::de::Error::custom(format!(
+                    "Failed to load config. Item with command `{}`, as a duplicate was found",
+                    item.run_cmd.join(" ")
+                )));
+            }
+        }
+    }
+
+    // Find duplicates in endpoints
+    {
+        let mut seen = BTreeSet::new();
+        for endpoint in cmds
+            .iter()
+            .filter(|cmd| cmd.enabled)
+            .filter_map(|cmd| cmd.url_endpoint.as_ref())
+        {
+            if !seen.insert(endpoint) {
+                return Err(serde::de::Error::custom(format!(
+                    "Failed to load config. Item with url_endpoint `{}`, as a duplicate was found",
+                    endpoint
+                )));
+            }
+        }
+    }
+
+    Ok(cmds)
 }
 
 fn default_true() -> bool {

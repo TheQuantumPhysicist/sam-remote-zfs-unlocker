@@ -68,8 +68,8 @@ impl ApiMock {
                         cmd.to_string(),
                         MockCustomCommandDetails {
                             cmd: CustomCommandInfo {
-                                label: cmd,
-                                endpoint: "".to_string(),
+                                label: cmd.to_string(),
+                                endpoint: cmd,
                                 allow_stdin,
                             },
                             expected_stdout,
@@ -227,22 +227,33 @@ impl ZfsRemoteAPI for ApiMock {
     ) -> Result<RunCommandOutput, Self::Error> {
         sleep_for_dramatic_effect().await;
 
-        let inner = self.inner.lock().expect("Poisoned mutex");
+        let mut inner = self.inner.lock().expect("Poisoned mutex");
 
         let cmd = inner
             .available_commands
-            .get(endpoint)
+            .get_mut(endpoint)
             .ok_or(ApiMockError::CustomCommandNotFound(endpoint.to_string()))?;
+
+        cmd.call_counter += 1;
 
         match stdin {
             Some(s) => Ok(RunCommandOutput {
-                stdout: format!("{}: {} - piped: {s}", cmd.expected_stdout, cmd.call_counter),
-                stderr: format!("{}: {}", cmd.expected_stderr, cmd.call_counter),
+                stdout: format!(
+                    "{} - {} - piped: {s}",
+                    cmd.expected_stdout, cmd.call_counter
+                ),
+                stderr: format!("{} - {}", cmd.expected_stderr, cmd.call_counter),
                 error_code: cmd.expected_error_code,
             }),
             None => Ok(RunCommandOutput {
-                stdout: format!("{}: {}", cmd.expected_stdout, cmd.call_counter),
-                stderr: format!("{}: {}", cmd.expected_stderr, cmd.call_counter),
+                stdout: format!(
+                    "{} - Call counter: {}",
+                    cmd.expected_stdout, cmd.call_counter
+                ),
+                stderr: format!(
+                    "{} - Call counter: {}",
+                    cmd.expected_stderr, cmd.call_counter
+                ),
                 error_code: cmd.expected_error_code,
             }),
         }
