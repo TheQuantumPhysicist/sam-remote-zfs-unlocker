@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 
 use crate::{
-    config::MockSettings,
+    config::{MockSettings, MockedCustomCommandConfig},
     types::{
         AvailableCustomCommands, CustomCommandInfo, DatasetFullMountState, DatasetMountedResponse,
         DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
@@ -59,18 +59,24 @@ pub struct ApiMock {
 impl ApiMock {
     pub fn new_from_config(config: MockSettings) -> Self {
         let cmds = config
-            .commands
+            .custom_commands
             .unwrap_or_default()
             .into_iter()
             .map(
-                |(cmd, expected_stdout, expected_stderr, expected_error_code, allow_stdin)| {
+                |MockedCustomCommandConfig {
+                     unique_label,
+                     expected_stdout,
+                     expected_stderr,
+                     expected_error_code,
+                     stdin_config,
+                 }| {
                     (
-                        cmd.to_string(),
+                        unique_label.clone(),
                         MockCustomCommandDetails {
                             cmd: CustomCommandInfo {
-                                label: cmd.to_string(),
-                                endpoint: cmd,
-                                allow_stdin,
+                                label: unique_label.clone(),
+                                endpoint: unique_label,
+                                allow_stdin: stdin_config.is_stdin_enabled(),
                             },
                             expected_stdout,
                             expected_stderr,

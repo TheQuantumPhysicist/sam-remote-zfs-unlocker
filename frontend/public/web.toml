@@ -14,8 +14,23 @@ datasets_and_passwords = [
     ["dataset5", "password5", 0.1]
 ]
 
-commands = [
-    ["Echo hello", "Hello world!", "Hello error!", 0, true],
-    ["Echo another", "Hello another world!", "Hello another error!", 1, false],
-    ["Echo even another", "Hello even another world!", "Hello even another error!", 5, false]
-]
+[[mode.mock.custom_command]]
+unique_label = "Echo hello"
+expected_stdout = "Hello world!"
+expected_stderr = "Hello error!"
+expected_error_code = 0
+stdin_config = { allow = true, placeholder = "Enter it here!" }
+
+[[mode.mock.custom_command]]
+unique_label = "Echo another"
+expected_stdout = "Hello another world!"
+expected_stderr = "Hello another error!"
+expected_error_code = 1
+stdin_config = false
+
+[[mode.mock.custom_command]]
+unique_label = "Echo even another"
+expected_stdout = "Hello even another world!"
+expected_stderr = "Hello even another error!"
+expected_error_code = 5
+stdin_config = false

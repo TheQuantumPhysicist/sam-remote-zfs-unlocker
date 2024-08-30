@@ -8,16 +8,18 @@ pub struct MockSettings {
     // Dataset name, password, probability of failure
     pub datasets_and_passwords: Option<Vec<(String, String, f32)>>,
     #[allow(clippy::type_complexity)]
-    // Command label, expected stdout, expected stderr, expected error code, allow stdin
-    pub commands: Option<Vec<(String, String, String, i32, bool)>>,
+    #[serde(rename = "custom_command")]
+    pub custom_commands: Option<Vec<MockedCustomCommandConfig>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LiveSettings {
     pub base_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "lowercase")]
 pub enum LiveOrMock {
     Live(LiveSettings),
@@ -47,6 +49,40 @@ impl FromStr for WebPageConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MockedCustomCommandConfig {
+    pub unique_label: String,
+    pub expected_stdout: String,
+    pub expected_stderr: String,
+    pub expected_error_code: i32,
+    pub stdin_config: MockedCustomCommandStdinConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[serde(untagged)]
+pub enum MockedCustomCommandStdinConfig {
+    Simple(bool),
+    AllSettings(MockedCustomCommandStdinSettings),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MockedCustomCommandStdinSettings {
+    pub allow: bool,
+    pub placeholder: String,
+}
+
+impl MockedCustomCommandStdinConfig {
+    pub fn is_stdin_enabled(&self) -> bool {
+        match self {
+            MockedCustomCommandStdinConfig::Simple(b) => *b,
+            MockedCustomCommandStdinConfig::AllSettings(s) => s.allow,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,5 +92,6 @@ mod tests {
         // println!("{}", std::env::current_dir().unwrap().display());
         let _config = WebPageConfig::from_file("../frontend/public/web.toml").unwrap();
         // println!("{_config:?}");
+        // println!("{}", toml::to_string_pretty(&_config).unwrap());
     }
 }
