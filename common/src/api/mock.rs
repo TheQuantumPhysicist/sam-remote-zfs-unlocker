@@ -68,7 +68,7 @@ impl ApiMock {
                      expected_stdout,
                      expected_stderr,
                      expected_error_code,
-                     stdin_config,
+                     stdin: stdin_config,
                  }| {
                     (
                         unique_label.clone(),
@@ -76,8 +76,9 @@ impl ApiMock {
                             cmd: CustomCommandInfo {
                                 label: unique_label.clone(),
                                 endpoint: unique_label,
-                                allow_stdin: stdin_config.is_stdin_enabled(),
+                                stdin_allow: stdin_config.is_stdin_enabled(),
                                 stdin_text_placeholder: stdin_config.stdin_placeholder_text(),
+                                stdin_is_password: stdin_config.is_password(),
                             },
                             expected_stdout,
                             expected_stderr,

@@ -190,7 +190,7 @@ fn CommandExecuteCell<A: ZfsRemoteHighLevel + 'static>(
         let command_resource = command_resource_for_action.clone();
         let stdin_string = command_resource
             .command_info()
-            .allow_stdin
+            .stdin_allow
             .then_some(stdin_string.clone());
         async move {
             // We reset first, to trigger the loading animation
@@ -201,10 +201,16 @@ fn CommandExecuteCell<A: ZfsRemoteHighLevel + 'static>(
 
     // This contains the text field + submit button objects, depending on whether stdin is allowed or not
     move || {
-        let stdin_field = if command_resource.command_info().allow_stdin {
+        let stdin_field = if command_resource.command_info().stdin_allow {
             view! {
                 <input
-                    type="password"
+                    type=view! {
+                        {if command_resource.command_info().stdin_is_password {
+                            "password"
+                        } else {
+                            "text"
+                        }}
+                    }
                     placeholder=command_resource.command_info().stdin_text_placeholder.clone()
                     on:input=move |ev| {
                         set_stdin_in_input.set(event_target_value(&ev));

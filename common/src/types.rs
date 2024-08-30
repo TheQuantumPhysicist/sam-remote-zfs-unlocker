@@ -57,8 +57,9 @@ pub struct AvailableCustomCommands {
 pub struct CustomCommandInfo {
     pub label: String,
     pub endpoint: String,
-    pub allow_stdin: bool,
+    pub stdin_allow: bool,
     pub stdin_text_placeholder: String,
+    pub stdin_is_password: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]

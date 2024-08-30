@@ -19,18 +19,18 @@ unique_label = "Echo hello"
 expected_stdout = "Hello world!"
 expected_stderr = "Hello error!"
 expected_error_code = 0
-stdin_config = { allow = true, placeholder = "Enter it here!" }
+stdin = { allow = true, placeholder = "Enter it here!", is_password = false }
 
 [[mode.mock.custom_command]]
 unique_label = "Echo another"
 expected_stdout = "Hello another world!"
 expected_stderr = "Hello another error!"
 expected_error_code = 1
-stdin_config = false
+stdin = false
 
 [[mode.mock.custom_command]]
 unique_label = "Echo even another"
 expected_stdout = "Hello even another world!"
 expected_stderr = "Hello even another error!"
 expected_error_code = 5
-stdin_config = false
+stdin = false

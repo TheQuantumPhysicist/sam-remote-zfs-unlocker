@@ -56,7 +56,7 @@ pub struct MockedCustomCommandConfig {
     pub expected_stdout: String,
     pub expected_stderr: String,
     pub expected_error_code: i32,
-    pub stdin_config: MockedCustomCommandStdinConfig,
+    pub stdin: MockedCustomCommandStdinConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,6 +72,12 @@ pub enum MockedCustomCommandStdinConfig {
 pub struct MockedCustomCommandStdinSettings {
     pub allow: bool,
     pub placeholder: String,
+    #[serde(default = "default_true")]
+    pub is_password: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl MockedCustomCommandStdinConfig {
@@ -86,6 +92,13 @@ impl MockedCustomCommandStdinConfig {
         match self {
             MockedCustomCommandStdinConfig::Simple(_) => "".to_string(),
             MockedCustomCommandStdinConfig::AllSettings(s) => s.placeholder.to_string(),
+        }
+    }
+
+    pub fn is_password(&self) -> bool {
+        match self {
+            MockedCustomCommandStdinConfig::Simple(b) => *b,
+            MockedCustomCommandStdinConfig::AllSettings(s) => s.is_password,
         }
     }
 }
