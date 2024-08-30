@@ -13,11 +13,11 @@ stdin_allow = false
 enabled = false
 
 [[custom_command]]
-label = "Combine with stdin"
-url_endpoint = "echo-message2"
-run_cmd = ["sed", "'s/$/ World!/'"]
+label = "Reverse a given string"
+url_endpoint = "reverse-string"
+run_cmd = ["rev"]
 stdin_allow = true
-stdin_placeholder_text = "What else to echo?"
+stdin_placeholder_text = "String to reverse"
 stdin_is_password = false
 enabled = true
 
