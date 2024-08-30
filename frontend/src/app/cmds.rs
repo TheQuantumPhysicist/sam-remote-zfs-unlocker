@@ -165,13 +165,25 @@ fn CommandTableCell<A: ZfsRemoteHighLevel + 'static>(
             None => view! { <p>"Error code"</p> }.into_view(),
         },
         CustomCommandsTableColumnDefinition::Stdout => match command_resource {
-            Some(ds) => view! { <StringOutputCell command_resource=ds extractor=|o| o.stdout.to_string() /> }
-                .into_view(),
+            Some(ds) => view! {
+                <StringOutputCell
+                    command_resource=ds
+                    extractor=|o| o.stdout.to_string()
+                    output_name="stdout".to_string()
+                />
+            }
+            .into_view(),
             None => view! { <p>"Stdout output"</p> }.into_view(),
         },
         CustomCommandsTableColumnDefinition::Stderr => match command_resource {
-            Some(ds) => view! { <StringOutputCell command_resource=ds extractor=|o| o.stderr.to_string() /> }
-                .into_view(),
+            Some(ds) => view! {
+                <StringOutputCell
+                    command_resource=ds
+                    extractor=|o| o.stderr.to_string()
+                    output_name="stderr".to_string()
+                />
+            }
+            .into_view(),
             None => view! { <p>"Stderr output"</p> }.into_view(),
         },
     }
@@ -233,11 +245,11 @@ fn CommandExecuteCell<A: ZfsRemoteHighLevel + 'static>(
 }
 
 #[component]
-fn StdOutputFormatted(output: String) -> impl IntoView {
+fn StdOutputFormatted(output: String, button_label: String) -> impl IntoView {
     let open_dialog = create_rw_signal(false);
 
     view! {
-        <button on:click=move |_| open_dialog.set(true)>"Show result"</button>
+        <button on:click=move |_| open_dialog.set(true)>{button_label}</button>
         <Modal
             open=open_dialog
             on_close=move || {}
@@ -256,12 +268,20 @@ fn StdOutputFormatted(output: String) -> impl IntoView {
 fn StringOutputCell<A: ZfsRemoteHighLevel + 'static>(
     command_resource: CommandResource<A>,
     extractor: impl Fn(&RunCommandOutput) -> String + 'static,
+    output_name: String,
 ) -> impl IntoView {
     // This contains the text field + submit button objects, depending on whether stdin is allowed
     let finished_view =
         move |output_result: Result<RunCommandOutput, <A as ZfsRemoteAPI>::Error>| {
             match output_result {
-                Ok(output) => view! { <StdOutputFormatted output=extractor(&output) /> },
+                Ok(output) => {
+                    view! {
+                        <StdOutputFormatted
+                            output=extractor(&output)
+                            button_label=format!("Show {output_name}")
+                        />
+                    }
+                }
                 Err(e) => view! {
                     "Retrieval of error code failed: "
                     {e.to_string()}
