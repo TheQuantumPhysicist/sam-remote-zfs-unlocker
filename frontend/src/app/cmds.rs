@@ -205,6 +205,7 @@ fn CommandExecuteCell<A: ZfsRemoteHighLevel + 'static>(
             view! {
                 <input
                     type="password"
+                    placeholder=command_resource.command_info().stdin_text_placeholder.clone()
                     on:input=move |ev| {
                         set_stdin_in_input.set(event_target_value(&ev));
                     }

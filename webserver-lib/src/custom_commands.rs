@@ -39,6 +39,7 @@ pub async fn custom_commands_list_route_handler(
             label: c.label.to_string(),
             endpoint: c.url_endpoint.to_string(),
             allow_stdin: c.allow_stdin,
+            stdin_text_placeholder: c.stdin_placeholder_text.to_string(),
         })
         .collect::<Vec<_>>();
 
@@ -69,6 +70,7 @@ pub struct RoutableCommand {
     pub url_endpoint: String,
     pub run_cmd: Vec<String>,
     pub allow_stdin: bool,
+    pub stdin_placeholder_text: String,
 }
 
 fn endpoint_from_custom_command(cmd: &CustomCommand) -> String {
@@ -84,6 +86,7 @@ impl From<CustomCommand> for RoutableCommand {
             label: cmd.label,
             run_cmd: cmd.run_cmd,
             allow_stdin: cmd.allow_stdin,
+            stdin_placeholder_text: cmd.stdin_placeholder_text,
         }
     }
 }

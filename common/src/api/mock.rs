@@ -77,6 +77,7 @@ impl ApiMock {
                                 label: unique_label.clone(),
                                 endpoint: unique_label,
                                 allow_stdin: stdin_config.is_stdin_enabled(),
+                                stdin_text_placeholder: stdin_config.stdin_placeholder_text(),
                             },
                             expected_stdout,
                             expected_stderr,

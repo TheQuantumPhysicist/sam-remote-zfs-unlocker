@@ -43,6 +43,8 @@ pub struct CustomCommand {
     pub run_cmd: Vec<String>,
     /// Whether to enable piping some input string into the command
     pub allow_stdin: bool,
+    /// The definition of the text to be input in stdin... something like "Email address", or "Password", etc.
+    pub stdin_placeholder_text: String,
 
     #[serde(default = "default_true")]
     pub enabled: bool,

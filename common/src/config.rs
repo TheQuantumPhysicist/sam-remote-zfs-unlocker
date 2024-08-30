@@ -81,6 +81,13 @@ impl MockedCustomCommandStdinConfig {
             MockedCustomCommandStdinConfig::AllSettings(s) => s.allow,
         }
     }
+
+    pub fn stdin_placeholder_text(&self) -> String {
+        match self {
+            MockedCustomCommandStdinConfig::Simple(_) => "".to_string(),
+            MockedCustomCommandStdinConfig::AllSettings(s) => s.placeholder.to_string(),
+        }
+    }
 }
 
 #[cfg(test)]

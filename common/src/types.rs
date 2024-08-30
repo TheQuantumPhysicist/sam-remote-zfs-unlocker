@@ -58,6 +58,7 @@ pub struct CustomCommandInfo {
     pub label: String,
     pub endpoint: String,
     pub allow_stdin: bool,
+    pub stdin_text_placeholder: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
