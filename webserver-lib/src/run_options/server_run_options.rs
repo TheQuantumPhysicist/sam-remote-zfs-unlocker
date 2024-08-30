@@ -1,7 +1,4 @@
-use std::{
-    net::SocketAddr,
-    path::{Path, PathBuf},
-};
+use std::{net::SocketAddr, path::PathBuf};
 
 use clap::Parser;
 
@@ -15,7 +12,7 @@ pub struct ServerRunOptions {
 
     /// Config file path
     #[clap(long, value_name = "PATH")]
-    config_path: Option<PathBuf>,
+    config_path: PathBuf,
 }
 
 impl ServerRunOptions {
@@ -27,10 +24,7 @@ impl ServerRunOptions {
         )
     }
 
-    pub fn config_path(&self) -> Option<&Path> {
-        match &self.config_path {
-            Some(p) => Some(p),
-            None => None,
-        }
+    pub fn config_path(&self) -> PathBuf {
+        self.config_path.clone()
     }
 }

@@ -244,14 +244,11 @@ pub async fn start_server(options: ServerRunOptions) -> Result<(), Box<dyn std::
     let bind_address = options.bind_address();
     let listener_socket = TcpListener::bind(bind_address).await?;
 
-    let config = options
-        .config_path()
-        .map(ApiServerConfig::from_file)
-        .transpose()?;
+    let config = ApiServerConfig::from_file(options.config_path())?;
 
     log::info!("Server socket binding to {}", bind_address);
 
-    web_server(listener_socket, config)
+    web_server(listener_socket, Some(config))
         .await
         .map_err(Into::into)
 }

@@ -1,5 +1,4 @@
 use common::types::RunCommandOutput;
-use tokio::io::{AsyncReadExt, AsyncWriteExt, BufWriter};
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum CommandError {
@@ -13,10 +12,16 @@ pub enum CommandError {
     StdinPipe,
 }
 
+#[allow(dead_code)]
 pub async fn run_command(
     cmd_with_args: &[String],
     stdin: Option<String>,
 ) -> Result<RunCommandOutput, CommandError> {
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt, BufWriter},
+        try_join,
+    };
+
     let (program, args) = cmd_with_args
         .split_first()
         .map(|(first, rest)| (first.clone(), rest.to_vec()))
@@ -37,20 +42,29 @@ pub async fn run_command(
         .map_err(|e| CommandError::CallFailed(e.to_string()))?;
 
     // Pipe stdin, if desired by the caller
+    let mut child_stdin = child.stdin.take();
     if let Some(stdin_string) = stdin {
-        match child.stdin.as_mut() {
-            Some(mut stdin_pipe) => {
-                // Write the key to stdin
-                let mut writer = BufWriter::new(&mut stdin_pipe);
-                writer
-                    .write_all(stdin_string.as_bytes())
+        match child_stdin.as_mut() {
+            Some(stdin_pipe) => {
+                // Create Vec from the input string
+                let stdin_data = {
+                    use std::io::Write;
+                    let mut write_buffer = Vec::new();
+                    let mut writer = std::io::BufWriter::new(&mut write_buffer);
+                    writeln!(&mut writer, "{}", stdin_string).expect("Cannot fail in memory write");
+                    drop(writer);
+                    write_buffer
+                };
+
+                // Write the data to stdin asynchronously
+                let mut async_writer = BufWriter::new(stdin_pipe);
+                async_writer
+                    .write_all(&stdin_data)
                     .await
                     .map_err(|e| CommandError::SystemError(e.to_string()))?;
-                writer
-                    .write(&[b'\n'])
-                    .await
-                    .map_err(|e| CommandError::SystemError(e.to_string()))?;
-                writer
+
+                // Flush the writer to ensure all data is sent
+                async_writer
                     .flush()
                     .await
                     .map_err(|e| CommandError::SystemError(e.to_string()))?;
@@ -59,19 +73,22 @@ pub async fn run_command(
         }
     }
 
+    // Signal we're done with stdin by dropping it
+    drop(child_stdin);
+
     // Capture the stdout handle of the child process
     let mut stdout = child.stdout.take().expect("Failed to capture stdout");
     let mut stderr = child.stderr.take().expect("Failed to capture stderr");
 
-    // Read stdout/stderr to a string
     let mut stdout_string = String::new();
-    AsyncReadExt::read_to_string(&mut stdout, &mut stdout_string)
-        .await
-        .map_err(|e| CommandError::SystemError(e.to_string()))?;
     let mut stderr_string = String::new();
-    AsyncReadExt::read_to_string(&mut stderr, &mut stderr_string)
-        .await
-        .map_err(|e| CommandError::SystemError(e.to_string()))?;
+
+    let (_, _) = try_join!(
+        // Read stdout/stderr to a string
+        AsyncReadExt::read_to_string(&mut stdout, &mut stdout_string),
+        AsyncReadExt::read_to_string(&mut stderr, &mut stderr_string),
+    )
+    .map_err(|e| CommandError::SystemError(e.to_string()))?;
 
     // Wait for the command to complete
     let status = child

@@ -50,3 +50,9 @@ tower-http-axum = { version = "0.5", package = "tower-http" }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 wasm-bindgen-futures = "0.4"
+
+[profile.dev]
+panic = "abort" # prevent panic catching (mostly for the tokio runtime)
+
+[profile.release]
+panic = "abort" # prevent panic catching (mostly for the tokio runtime)

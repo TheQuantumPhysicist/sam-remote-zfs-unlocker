@@ -1,0 +1,161 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'common'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=common"
+                ],
+                "filter": {
+                    "name": "common",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'frontend'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=frontend",
+                    "--package=frontend"
+                ],
+                "filter": {
+                    "name": "frontend",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'frontend'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=frontend",
+                    "--package=frontend"
+                ],
+                "filter": {
+                    "name": "frontend",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'api_server'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=api-server"
+                ],
+                "filter": {
+                    "name": "api_server",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'webserver'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=webserver",
+                    "--package=webserver",
+                ],
+                "filter": {
+                    "name": "webserver",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "server",
+                "--config-path",
+                "webserver-lib/api-config.toml"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'webserver'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=webserver",
+                    "--package=webserver"
+                ],
+                "filter": {
+                    "name": "webserver",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'zfs-remote-unlocker'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=zfs-remote-unlocker",
+                    "--package=zfs-remote-unlocker"
+                ],
+                "filter": {
+                    "name": "zfs-remote-unlocker",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'zfs-remote-unlocker'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=zfs-remote-unlocker",
+                    "--package=zfs-remote-unlocker"
+                ],
+                "filter": {
+                    "name": "zfs-remote-unlocker",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
