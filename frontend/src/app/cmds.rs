@@ -248,19 +248,24 @@ fn CommandExecuteCell<A: ZfsRemoteHighLevel + 'static>(
 fn StdOutputFormatted(output: String, button_label: String) -> impl IntoView {
     let open_dialog = create_rw_signal(false);
 
-    view! {
-        <button on:click=move |_| open_dialog.set(true)>{button_label}</button>
-        <Modal
-            open=open_dialog
-            on_close=move || {}
-            children=move || {
-                {
-                    view! { <p class="custom-commands-std-output">{output}</p> }
+    if !output.is_empty() {
+        view! {
+            <button on:click=move |_| open_dialog.set(true)>{button_label.clone()}</button>
+            <Modal
+                open=open_dialog
+                on_close=move || {}
+                children=move || {
+                    {
+                        view! { <p class="custom-commands-std-output">{output}</p> }
+                    }
+                        .into_view()
+                        .into()
                 }
-                    .into_view()
-                    .into()
-            }
-        />
+            />
+        }
+        .into_view()
+    } else {
+        view! { <p>"-"</p> }.into_view()
     }
 }
 
@@ -293,7 +298,7 @@ fn StringOutputCell<A: ZfsRemoteHighLevel + 'static>(
     move || {
         let command_result = command_resource.get();
         match command_result {
-            OutputExecutionResult::InitialState => view! {}.into_view(),
+            OutputExecutionResult::InitialState => view! { <p>"-"</p> }.into_view(),
             OutputExecutionResult::Loading => view! { <RandomLoadingImage /> }.into_view(),
             OutputExecutionResult::RanAtLeastOnce(output) => finished_view(output).into_view(),
         }
@@ -325,7 +330,7 @@ fn ErrorCodeCell<A: ZfsRemoteHighLevel + 'static>(
     move || {
         let command_result = command_resource.get();
         match command_result {
-            OutputExecutionResult::InitialState => view! {}.into_view(),
+            OutputExecutionResult::InitialState => view! { <p>"-"</p> }.into_view(),
             OutputExecutionResult::Loading => view! { <RandomLoadingImage /> }.into_view(),
             OutputExecutionResult::RanAtLeastOnce(output) => finished_view(output).into_view(),
         }
