@@ -249,7 +249,7 @@ fn CommandExecuteCell<A: ZfsRemoteHighLevel + 'static>(
 fn StdOutputFormatted(output: String, button_label: String) -> impl IntoView {
     let open_dialog = create_rw_signal(false);
 
-    if !output.is_empty() {
+    if !output.trim().is_empty() {
         view! {
             <button on:click=move |_| open_dialog.set(true)>{button_label.clone()}</button>
             <Modal
