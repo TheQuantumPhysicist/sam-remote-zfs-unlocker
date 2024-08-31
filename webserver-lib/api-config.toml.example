@@ -48,9 +48,21 @@ enabled = false
 
 # Command to check if docker is running, where we filter with grep the "Active" line
 [[custom_command]]
-label = "Check if docker"
+label = "Check docker running"
 url_endpoint = "docker-check"
 run_cmd = [["systemctl", "status", "docker"], ["grep", "Active"]]
+stdin_allow = false
+stdin_placeholder_text = ""
+enabled = true
+
+# Command to check if docker is running, where we filter with grep the "Active" line
+[[custom_command]]
+label = "Start docker"
+url_endpoint = "docker-start"
+# Two things here:
+#   1. Don't forget to add this command to the user's visudo, so that a password is not needed
+#   2. We use `-n` to disable interactive mode
+run_cmd = ["sudo", "-n", "systemctl", "start", "docker"]
 stdin_allow = false
 stdin_placeholder_text = ""
 enabled = true
