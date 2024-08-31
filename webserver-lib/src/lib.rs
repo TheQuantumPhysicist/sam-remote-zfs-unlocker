@@ -51,8 +51,8 @@ enum Error {
     PassphraseNotProvided(String),
     #[error("ZFS passphrase for dataset {1} is not printable. Error: {0}")]
     NonPrintablePassphrase(String, String),
-    #[error("Command execution error: {0}")]
-    CommandExecution(String),
+    #[error("The commands chain is empty")]
+    NoCommandsProvided,
 }
 
 impl IntoResponse for Error {
@@ -63,7 +63,7 @@ impl IntoResponse for Error {
             Error::KeyNotLoadedForDataset(_) => (StatusCode::METHOD_NOT_ALLOWED, self.to_string()),
             Error::PassphraseNotProvided(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
             Error::NonPrintablePassphrase(_, _) => (StatusCode::BAD_REQUEST, self.to_string()),
-            Error::CommandExecution(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Error::NoCommandsProvided => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
         };
 
         (status, Json(json!({ "error": message }))).into_response()

@@ -1,4 +1,21 @@
 [[custom_command]]
+# The label that will show up in the UI
+label = "Some piping"
+# Optional: The endpoint for the url. This can be removed and will be recreated automatically
+url_endpoint = "pipe-strings"
+# With this, you can have multiple commands, where every stdout from one is piped to the next one
+run_cmd = [["echo", "Hello, World"], ["grep", "Hello"], ["awk","{print $2}"]]
+# You can have a UI text field to pipe text to the first command
+stdin_allow = false
+# If stdin is enabled, this is the placeholder that will be shown there
+stdin_placeholder_text = "Some cool description"
+# If true, the command will be a password in the UI
+stdin_is_password = false
+# Whether the command is enabled. This is placed for disabling the command without having to delete its data (or, you can comment it)
+enabled = true
+
+# Some more command examples
+[[custom_command]]
 label = "Echo Message"
 url_endpoint = "echo-message"
 run_cmd = ["echo", "Hello, world!"]
@@ -28,3 +45,12 @@ run_cmd = ["echo", "Not happening!"]
 stdin_allow = false
 stdin_placeholder_text = ""
 enabled = false
+
+# Command to check if docker is running, where we filter with grep the "Active" line
+[[custom_command]]
+label = "Check if docker"
+url_endpoint = "docker-check"
+run_cmd = [["systemctl", "status", "docker"], ["grep", "Active"]]
+stdin_allow = false
+stdin_placeholder_text = ""
+enabled = true

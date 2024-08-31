@@ -1,12 +1,52 @@
 use std::sync::Arc;
 
 use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
-use common::types::{AvailableCustomCommands, CustomCommandInfo, CustomCommandRunOptions};
+use common::types::{
+    AvailableCustomCommands, CustomCommandInfo, CustomCommandRunOptions, RunCommandOutput,
+};
 use tokio::sync::Mutex;
 
 use crate::{
-    run_options::config::CustomCommand, state::ServerState, Error, StateType, CUSTOM_COMMANDS_DIR,
+    command_caller::run_command, run_options::config::CustomCommand, state::ServerState, Error,
+    StateType, CUSTOM_COMMANDS_DIR,
 };
+
+async fn chain_commands(
+    commands: &Vec<Vec<String>>,
+    initial_stdin: Option<String>,
+) -> Result<RunCommandOutput, Error> {
+    if commands.is_empty() {
+        return Err(Error::NoCommandsProvided);
+    }
+    let mut current_stdin = initial_stdin;
+
+    let mut result = RunCommandOutput {
+        stdout: String::new(),
+        stderr: String::new(),
+        error_code: 254,
+    };
+
+    for command in commands {
+        result = match run_command(&command, current_stdin).await {
+            Ok(result) => result,
+            Err(e) => {
+                return Ok(RunCommandOutput {
+                    stdout: String::new(),
+                    stderr: e.to_string(),
+                    error_code: 253,
+                })
+            }
+        };
+
+        if result.error_code != 0 {
+            break;
+        }
+
+        current_stdin = Some(result.stdout.clone());
+    }
+
+    Ok(result)
+}
 
 async fn route_handler_from_command(
     State(_state): State<Arc<Mutex<ServerState>>>,
@@ -14,9 +54,8 @@ async fn route_handler_from_command(
     cmd: RoutableCommand,
 ) -> Result<impl IntoResponse, Error> {
     let stdin = json_body.and_then(|b| b.stdin.clone());
-    let result = crate::command_caller::run_command(&cmd.run_cmd, stdin)
-        .await
-        .map_err(|e| Error::CommandExecution(e.to_string()))?;
+
+    let result = chain_commands(&cmd.run_cmd, stdin).await?;
 
     Ok(Json::from(result))
 }
@@ -69,7 +108,7 @@ fn hash_string(s: impl AsRef<str>) -> String {
 pub struct RoutableCommand {
     pub label: String,
     pub url_endpoint: String,
-    pub run_cmd: Vec<String>,
+    pub run_cmd: Vec<Vec<String>>,
     pub stdin_allow: bool,
     pub stdin_placeholder_text: String,
     pub stdin_is_password: bool,
@@ -78,7 +117,7 @@ pub struct RoutableCommand {
 fn endpoint_from_custom_command(cmd: &CustomCommand) -> String {
     cmd.url_endpoint
         .clone()
-        .unwrap_or_else(|| hash_string(cmd.label.to_string() + &cmd.run_cmd.join(" ")))
+        .unwrap_or_else(|| hash_string(cmd.label.to_string() + &cmd.run_cmd.as_string()))
 }
 
 impl From<CustomCommand> for RoutableCommand {
@@ -86,7 +125,7 @@ impl From<CustomCommand> for RoutableCommand {
         RoutableCommand {
             url_endpoint: endpoint_from_custom_command(&cmd),
             label: cmd.label,
-            run_cmd: cmd.run_cmd,
+            run_cmd: cmd.run_cmd.take_commands(),
             stdin_allow: cmd.stdin_allow,
             stdin_placeholder_text: cmd.stdin_placeholder_text,
             stdin_is_password: cmd.stdin_is_password,

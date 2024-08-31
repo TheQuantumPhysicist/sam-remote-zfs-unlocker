@@ -43,8 +43,10 @@ pub struct CustomCommand {
     /// The url endpoint, which will be used for the URL. If left empty, it will be automatically generated.
     #[serde(default, deserialize_with = "validate_url_endpoint")]
     pub url_endpoint: Option<String>,
-    /// Command to run to activate something
-    pub run_cmd: Vec<String>,
+    /// Commands to run to activate something. Multiple commands will result in commands being executed in order,
+    /// and every command's result get piped to the next command.
+    /// Foe example, `systemctl status docker | grep Active` becomes `[["systemctl","status","docker"],["grep","Active"]]`
+    pub run_cmd: SingleOrChainedCommands,
     /// Whether to enable piping some input string into the command
     #[serde(default)]
     pub stdin_allow: bool,
@@ -87,6 +89,38 @@ where
     Ok(s)
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[serde(untagged)]
+pub enum SingleOrChainedCommands {
+    Single(Vec<String>),
+    Chained(Vec<Vec<String>>),
+}
+
+impl SingleOrChainedCommands {
+    pub fn commands(&self) -> Vec<Vec<String>> {
+        match self {
+            SingleOrChainedCommands::Single(cmd) => vec![cmd.clone()],
+            SingleOrChainedCommands::Chained(cmds) => cmds.clone(),
+        }
+    }
+
+    pub fn take_commands(self) -> Vec<Vec<String>> {
+        match self {
+            SingleOrChainedCommands::Single(cmd) => vec![cmd],
+            SingleOrChainedCommands::Chained(cmds) => cmds,
+        }
+    }
+
+    pub fn as_string(&self) -> String {
+        self.commands()
+            .iter()
+            .map(|v| v.join(" "))
+            .collect::<Vec<_>>()
+            .join(" | ")
+    }
+}
+
 // Custom deserialization function to validate the label field
 fn validate_commands_list<'de, D>(deserializer: D) -> Result<Vec<CustomCommand>, D::Error>
 where
@@ -96,12 +130,12 @@ where
 
     // Find duplicates in commands
     {
-        let mut seen: BTreeSet<&Vec<String>> = BTreeSet::new();
+        let mut seen: BTreeSet<Vec<Vec<String>>> = BTreeSet::new();
         for item in cmds.iter().filter(|cmd| cmd.enabled) {
-            if !seen.insert(&item.run_cmd) {
+            if !seen.insert(item.run_cmd.commands().clone()) {
                 return Err(serde::de::Error::custom(format!(
                     "Failed to load config. Item with command `{}`, as a duplicate was found",
-                    item.run_cmd.join(" ")
+                    &item.run_cmd.as_string()
                 )));
             }
         }
