@@ -4,7 +4,7 @@ use common::config::WebPageConfig;
 
 use super::log;
 
-const CONFIG_URL: &str = "/public/web.toml";
+const CONFIG_URL: &str = "/public/app-config.toml";
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ConfigurationLoadError {

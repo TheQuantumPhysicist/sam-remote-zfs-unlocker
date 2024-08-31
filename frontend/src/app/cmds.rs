@@ -65,7 +65,7 @@ async fn custom_commands_initial_query<A: ZfsRemoteHighLevel + 'static>(
 pub fn CommandsTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
     log("Creating custom commands table");
 
-    let zfs_rows = create_local_resource(
+    let cmds_rows = create_local_resource(
         || (),
         move |_| {
             let api = api.clone();
@@ -74,7 +74,7 @@ pub fn CommandsTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
     );
 
     let commands_table_view = move || {
-        zfs_rows.and_then(|(api, rows)| {
+        cmds_rows.and_then(|(api, rows)| {
             view! { <CommandCallsTable api=api.clone() available_commands=rows /> }
         })
     };

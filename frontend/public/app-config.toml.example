@@ -1,0 +1,36 @@
+# Live configuration
+[mode.live]
+base_url = "http://127.0.0.1:6677"
+
+# # Mock configuration
+# [mode.mock]
+# # Simualted datasets
+# datasets_and_passwords = [
+#     # Dataset name, key password, probability of failing
+#     ["dataset1", "password1", 0.0],
+#     ["dataset2", "password2", 0.0],
+#     ["dataset3", "password3", 0.1],
+#     ["dataset4", "password4", 0.1],
+#     ["dataset5", "password5", 0.1]
+# ]
+
+# [[mode.mock.custom_command]]
+# unique_label = "Echo hello"
+# expected_stdout = "Hello world!"
+# expected_stderr = "Hello error!"
+# expected_error_code = 0
+# stdin = { allow = true, placeholder = "Enter it here!", is_password = false }
+
+# [[mode.mock.custom_command]]
+# unique_label = "Echo another"
+# expected_stdout = "Hello another world!"
+# expected_stderr = ""
+# expected_error_code = 1
+# stdin = false
+
+# [[mode.mock.custom_command]]
+# unique_label = "Echo even another"
+# expected_stdout = "Hello even another world!"
+# expected_stderr = "Hello even another error!"
+# expected_error_code = 5
+# stdin = false
