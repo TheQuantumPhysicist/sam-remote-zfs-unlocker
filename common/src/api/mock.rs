@@ -254,14 +254,22 @@ impl ZfsRemoteAPI for ApiMock {
                 error_code: cmd.expected_error_code,
             }),
             None => Ok(RunCommandOutput {
-                stdout: format!(
-                    "{} - Call counter: {}",
-                    cmd.expected_stdout, cmd.call_counter
-                ),
-                stderr: format!(
-                    "{} - Call counter: {}",
-                    cmd.expected_stderr, cmd.call_counter
-                ),
+                stdout: if cmd.expected_stdout.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        "{} - Call counter: {}",
+                        cmd.expected_stdout, cmd.call_counter
+                    )
+                },
+                stderr: if cmd.expected_stderr.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        "{} - Call counter: {}",
+                        cmd.expected_stderr, cmd.call_counter
+                    )
+                },
                 error_code: cmd.expected_error_code,
             }),
         }

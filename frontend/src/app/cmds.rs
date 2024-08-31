@@ -11,6 +11,7 @@ use leptos::{
     event_target_value, view, CollectView, ErrorBoundary, IntoView, Show, SignalGet, SignalSet,
     Transition,
 };
+use leptos_icons::Icon;
 
 use crate::{
     app::{config_reader::retrieve_config, error_fallback, log, modal::Modal},
@@ -265,7 +266,7 @@ fn StdOutputFormatted(output: String, button_label: String) -> impl IntoView {
         }
         .into_view()
     } else {
-        view! { <p>"-"</p> }.into_view()
+        view! { <NothingToShowIcon /> }.into_view()
     }
 }
 
@@ -298,7 +299,7 @@ fn StringOutputCell<A: ZfsRemoteHighLevel + 'static>(
     move || {
         let command_result = command_resource.get();
         match command_result {
-            OutputExecutionResult::InitialState => view! { <p>"-"</p> }.into_view(),
+            OutputExecutionResult::InitialState => view! { <NothingToShowIcon /> }.into_view(),
             OutputExecutionResult::Loading => view! { <RandomLoadingImage /> }.into_view(),
             OutputExecutionResult::RanAtLeastOnce(output) => finished_view(output).into_view(),
         }
@@ -307,7 +308,11 @@ fn StringOutputCell<A: ZfsRemoteHighLevel + 'static>(
 
 #[component]
 fn ErrorCodeFromOutput(output: RunCommandOutput) -> impl IntoView {
-    view! { <p>{output.error_code}</p> }
+    if output.error_code == 0 {
+        view! { <CheckFor0ErrorCode /> }.into_view()
+    } else {
+        view! { <p style="color: red;">{output.error_code}</p> }.into_view()
+    }
 }
 
 #[component]
@@ -330,10 +335,37 @@ fn ErrorCodeCell<A: ZfsRemoteHighLevel + 'static>(
     move || {
         let command_result = command_resource.get();
         match command_result {
-            OutputExecutionResult::InitialState => view! { <p>"-"</p> }.into_view(),
+            OutputExecutionResult::InitialState => view! { <NothingToShowIcon /> }.into_view(),
             OutputExecutionResult::Loading => view! { <RandomLoadingImage /> }.into_view(),
             OutputExecutionResult::RanAtLeastOnce(output) => finished_view(output).into_view(),
         }
+    }
+}
+
+#[component]
+fn CheckFor0ErrorCode() -> impl IntoView {
+    view! {
+        <div style="font-size: 2em; color: #8f39d3;" title="Success - exit code 0">
+            <Icon icon=icondata::VsCheck style="color: green" />
+        </div>
+    }
+}
+
+#[component]
+fn NothingToShowIcon() -> impl IntoView {
+    view! {
+        <div style="font-size: 1em; color: #8f39d3;" title="Nothing to show">
+            <Icon icon=icondata::LuCircleSlash2 style="color: gray" />
+        </div>
+    }
+}
+
+#[component]
+fn CheckMarkForSuccessIcon() -> impl IntoView {
+    view! {
+        <div style="font-size: 1em; color: #8f39d3;">
+            <Icon icon=icondata::VsCheck style="color: gray" />
+        </div>
     }
 }
 

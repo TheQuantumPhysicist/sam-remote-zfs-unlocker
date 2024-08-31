@@ -2,6 +2,7 @@ use leptos::{
     component, create_effect, create_node_ref, ev::MouseEvent, html::Dialog, logging::warn, view,
     Fragment, IntoView, Signal, SignalGet,
 };
+use leptos_icons::Icon;
 use wasm_bindgen_futures::wasm_bindgen::JsCast;
 
 #[component]
@@ -69,11 +70,20 @@ where
                 <form method="dialog" on:submit=move |_| (on_close.clone())()>
                     <a href=close_link.unwrap_or_default()>
                         <button class="Modal-header-close" aria-label="Close">
-                            "Close"
+                            <CloseDialogIcon />
                         </button>
                     </a>
                 </form>
             </div>
         </dialog>
+    }
+}
+
+#[component]
+fn CloseDialogIcon() -> impl IntoView {
+    view! {
+        <div style="font-size: 2em; color: #8f39d3;">
+            <Icon icon=icondata::BiCheckboxCheckedRegular style="color: white" />
+        </div>
     }
 }

@@ -24,7 +24,7 @@ stdin = { allow = true, placeholder = "Enter it here!", is_password = false }
 [[mode.mock.custom_command]]
 unique_label = "Echo another"
 expected_stdout = "Hello another world!"
-expected_stderr = "Hello another error!"
+expected_stderr = ""
 expected_error_code = 1
 stdin = false
 
