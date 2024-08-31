@@ -4,7 +4,7 @@ base_url = "http://127.0.0.1:6677"
 
 # # Mock configuration
 # [mode.mock]
-# # Simualted datasets
+# # Simulated datasets
 # datasets_and_passwords = [
 #     # Dataset name, key password, probability of failing
 #     ["dataset1", "password1", 0.0],
