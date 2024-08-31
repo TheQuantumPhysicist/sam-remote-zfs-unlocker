@@ -27,7 +27,7 @@ async fn chain_commands(
     };
 
     for command in commands {
-        result = match run_command(&command, current_stdin).await {
+        result = match run_command(command, current_stdin).await {
             Ok(result) => result,
             Err(e) => {
                 return Ok(RunCommandOutput {
