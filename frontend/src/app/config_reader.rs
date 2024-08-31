@@ -22,6 +22,9 @@ pub async fn retrieve_config() -> Result<WebPageConfig, ConfigurationLoadError> 
     log(&format!("Retrieving config from URL: {url}"));
 
     let config_file = reqwasm::http::Request::get(url)
+        .header("Cache-Control", "no-cache, no-store, must-revalidate")
+        .header("Pragma", "no-cache")
+        .header("Expires", "0")
         .send()
         .await
         .map_err(|e| ConfigurationLoadError::Retrieval(e.to_string(), url.to_string()))?
