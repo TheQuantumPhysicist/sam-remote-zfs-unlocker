@@ -11,6 +11,9 @@ use reqwasm::http;
 pub trait ZfsRemoteAPI: Clone {
     type Error: std::error::Error + Send + Sync + Clone + 'static;
 
+    /// Test the connection to the API server
+    async fn test_connection(&self) -> Result<(), Self::Error>;
+
     async fn encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error>;
 
     async fn encrypted_dataset_state(

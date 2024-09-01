@@ -12,9 +12,12 @@ use axum::{
     serve::Serve,
     Json, Router,
 };
-use common::types::{
-    DatasetBody, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
-    KeyLoadedResponse,
+use common::{
+    types::{
+        DatasetBody, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
+        KeyLoadedResponse,
+    },
+    HELLO_RESPONSE,
 };
 use custom_commands::{
     commands_to_routables, custom_commands_list_route_handler, routes_from_config,
@@ -194,8 +197,13 @@ async fn encrypted_dataset_state(
     Ok(Json::from(result.clone()))
 }
 
+async fn hello() -> Result<impl IntoResponse, Error> {
+    Ok(HELLO_RESPONSE)
+}
+
 fn zfs_routes() -> Router<StateType> {
     let inner_routes = Router::new()
+        .route("/hello", get(hello))
         .route("/encrypted-datasets-state", get(encrypted_datasets_state))
         .route("/encrypted-dataset-state", post(encrypted_dataset_state))
         .route("/load-key", post(load_key))

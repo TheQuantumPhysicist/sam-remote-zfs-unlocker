@@ -37,6 +37,13 @@ impl std::error::Error for ApiAnyError {
 impl ZfsRemoteAPI for ApiAny {
     type Error = ApiAnyError;
 
+    async fn test_connection(&self) -> Result<(), Self::Error> {
+        match self {
+            ApiAny::Live(e) => e.test_connection().await.map_err(Into::into),
+            ApiAny::Mock(e) => e.test_connection().await.map_err(Into::into),
+        }
+    }
+
     async fn encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error> {
         match self {
             ApiAny::Live(e) => e.encrypted_datasets_state().await.map_err(Into::into),

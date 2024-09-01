@@ -125,6 +125,10 @@ impl ApiMock {
 impl ZfsRemoteAPI for ApiMock {
     type Error = ApiMockError;
 
+    async fn test_connection(&self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
     async fn encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error> {
         sleep_for_dramatic_effect().await;
 

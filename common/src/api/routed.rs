@@ -10,6 +10,7 @@ use crate::{
         AvailableCustomCommands, CustomCommandRunOptions, DatasetBody, DatasetFullMountState,
         DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
     },
+    HELLO_RESPONSE,
 };
 
 use super::{traits::ZfsRemoteAPI, wasm_request::WasmRequest};
@@ -20,6 +21,8 @@ pub enum ApiError {
     Request(String),
     #[error("Json conversion error for URL `{0}`: {1}")]
     JsonConversion(String, String),
+    #[error("Unexpected hello response. Expected: {0} - Found {1}")]
+    UnexpectedHelloResponse(String, String),
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +41,20 @@ impl ApiRouteImpl {
 #[async_trait(?Send)]
 impl ZfsRemoteAPI for ApiRouteImpl {
     type Error = ApiError;
+
+    async fn test_connection(&self) -> Result<(), Self::Error> {
+        let url = format!("{}/hello", self.base_url);
+        let result: String = do_get_request(&url).await.map_err(Into::into)?;
+
+        if result == HELLO_RESPONSE {
+            Err(ApiError::UnexpectedHelloResponse(
+                HELLO_RESPONSE.to_string(),
+                result.to_string(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
 
     async fn encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error> {
         let url = format!("{}/zfs/encrypted-datasets-state", self.base_url);

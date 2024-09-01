@@ -12,8 +12,8 @@ use common::{
 };
 use config_reader::retrieve_config;
 use leptos::{
-    component, create_local_resource, create_signal, view, CollectView, Errors, IntoView, RwSignal,
-    SignalGet, SignalUpdate, SignalWith,
+    component, create_local_resource, create_signal, event_target_value, view, CollectView, Errors,
+    IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate, SignalWith, WriteSignal,
 };
 use zfs::ZfsUnlockTable;
 
@@ -30,6 +30,8 @@ pub fn App() -> impl IntoView {
 
 #[component]
 fn InitComponent(base_url: Option<String>) -> impl IntoView {
+    let (main_page_getter, main_page_setter) = create_signal(view! {}.into_view());
+
     let configuration_getter =
         create_local_resource(|| (), move |_| async { retrieve_config().await });
 
@@ -38,17 +40,8 @@ fn InitComponent(base_url: Option<String>) -> impl IntoView {
 
     let main_page_view = view! {
         {move || match api_from_config_getter() {
-            Some(Ok(api)) => view! { <MainPage api=api.clone() /> }.into_view(),
-            Some(Err(e)) => {
-                view! {
-                    <div class="config-load-error">
-                        <p>{format!("Error loading config file.")}</p>
-                        <ToggleText to_show=e.to_string() to_show_name="error".to_string() />
-                        <hr />
-                    </div>
-                }
-                    .into_view()
-            }
+            Some(Ok(api)) => view! { <MainPage api=api.clone() main_page_setter /> }.into_view(),
+            Some(Err(err)) => view! { <ConfigConnectError err main_page_setter /> }.into_view(),
             None => {
                 view! {
                     <div class="config-loading-page">
@@ -64,23 +57,96 @@ fn InitComponent(base_url: Option<String>) -> impl IntoView {
     let api_chooser = move || match &base_url {
         Some(url) => {
             let api = api_from_config(WebPageConfig::from_base_url(url.clone()));
-            view! { <MainPage api=api /> }.into_view()
+            view! { <MainPage api=api main_page_setter /> }.into_view()
         }
         None => main_page_view.into_view(),
     };
 
-    api_chooser.into_view()
+    main_page_setter.set(api_chooser.into_view());
+
+    move || main_page_getter.get()
 }
 
 #[component]
-fn MainPage<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
+fn EnterAPIAddress(area_setter: WriteSignal<leptos::View>) -> impl IntoView {
+    let (url_input, set_url_input) = create_signal("".to_string());
+
     view! {
-        <h3 align="center">"Custom commands"</h3>
-        <CommandsTable api=api.clone() />
-        <hr />
-        <h3 align="center">"ZFS datasets"</h3>
-        <ZfsUnlockTable api=api />
+        <p>"Enter API URL or attempt to reload config file"</p>
+        <input
+            type="text"
+            placeholder="https://..."
+            on:input=move |ev| {
+                set_url_input.set(event_target_value(&ev));
+            }
+            prop:value=url_input
+        />
+        <button on:click=move |_| {
+            area_setter.set(view! { <InitComponent base_url=Some(url_input.get()) /> }.into_view());
+        }>"Connect"</button>
+        <button on:click=move |_| {
+            area_setter.set(view! { <InitComponent base_url=None /> }.into_view());
+        }>"Reload config file"</button>
     }
+}
+
+#[component]
+fn MainPage<A: ZfsRemoteHighLevel + 'static>(
+    api: A,
+    main_page_setter: WriteSignal<leptos::View>,
+) -> impl IntoView {
+    let api_for_tester = api.clone();
+    let api_tester = create_local_resource(
+        || (),
+        move |_| {
+            let api = api_for_tester.clone();
+            async move { api.clone().test_connection().await }
+        },
+    );
+
+    let main_page_view = view! {
+        {move || match api_tester.get() {
+            Some(Ok(_)) => {
+                view! {
+                    <h3 align="center">"Custom commands"</h3>
+                    <CommandsTable api=api.clone() />
+                    <hr />
+                    <h3 align="center">"ZFS datasets"</h3>
+                    <ZfsUnlockTable api=api.clone() />
+                }
+                    .into_view()
+            }
+            Some(Err(err)) => {
+                view! { <ConfigConnectError err main_page_setter /> }
+            }
+            None => {
+                view! {
+                    <div class="config-loading-page">
+                        <RandomLoadingImage />
+                    </div>
+                }
+                    .into_view()
+            }
+        }}
+    };
+
+    main_page_view.into_view()
+}
+
+#[component]
+fn ConfigConnectError(
+    err: impl std::error::Error,
+    main_page_setter: WriteSignal<leptos::View>,
+) -> impl IntoView {
+    view! {
+        <div class="config-load-error">
+            <p>{format!("Error loading config file.")}</p>
+            <ToggleText to_show=err.to_string() to_show_name="error".to_string() />
+            <hr />
+            <EnterAPIAddress area_setter=main_page_setter />
+        </div>
+    }
+    .into_view()
 }
 
 fn api_from_config(config: WebPageConfig) -> ApiAny {
