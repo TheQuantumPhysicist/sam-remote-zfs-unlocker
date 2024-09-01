@@ -11,6 +11,7 @@ use super::{
     traits::ZfsRemoteAPI,
 };
 
+/// This is a manual `dyn` solution because the API cannot go into a vtable
 #[derive(Clone)]
 pub enum ApiAny {
     Live(ApiRouteImpl),
