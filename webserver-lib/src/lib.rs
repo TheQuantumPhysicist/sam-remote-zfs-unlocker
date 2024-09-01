@@ -200,7 +200,6 @@ async fn hello() -> Result<impl IntoResponse, Error> {
 
 fn zfs_routes() -> Router<StateType> {
     let inner_routes = Router::new()
-        .route("/hello", get(hello))
         .route("/encrypted-datasets-state", get(encrypted_datasets_state))
         .route("/encrypted-dataset-state", post(encrypted_dataset_state))
         .route("/load-key", post(load_key))
@@ -235,6 +234,7 @@ fn web_server(
         );
 
     let routes = Router::new()
+        .route("/hello", get(hello))
         .merge(zfs_routes())
         .merge(custom_routes)
         .with_state(state)
