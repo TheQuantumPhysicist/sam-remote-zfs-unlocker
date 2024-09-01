@@ -24,7 +24,7 @@ pub fn App() -> impl IntoView {
     let configuration_getter =
         create_local_resource(|| (), move |_| async { retrieve_config().await });
 
-    let custom_commands_view = move || {
+    let api_getter = move || {
         configuration_getter.and_then(|config| match config.mode.clone() {
             common::config::LiveOrMock::Live(s) => {
                 log("Initializing live object");
@@ -38,7 +38,7 @@ pub fn App() -> impl IntoView {
     };
 
     let main_page_view = view! {
-        {move || match custom_commands_view() {
+        {move || match api_getter() {
             Some(Ok(config)) => {
                 view! {
                     <h3 align="center">"Custom commands"</h3>
