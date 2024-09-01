@@ -146,7 +146,7 @@ fn ConfigConnectError(
 ) -> impl IntoView {
     view! {
         <div class="config-load-error">
-            <p>{format!("Error loading config file.")}</p>
+            <p>{"Error loading config file.".to_string()}</p>
             <ToggleText to_show=err.to_string() to_show_name="error".to_string() />
             <hr />
             <EnterAPIAddress area_setter=main_page_setter />

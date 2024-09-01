@@ -19,7 +19,7 @@ pub fn get_value_from_storage(key: impl AsRef<str>) -> Option<String> {
     let storage = match storage {
         Some(s) => s,
         None => {
-            log(&format!("Failed to get storage. Got None.",));
+            log("Failed to get storage. Got None.");
             return None;
         }
     };
@@ -32,7 +32,7 @@ pub fn get_value_from_storage(key: impl AsRef<str>) -> Option<String> {
                 e.as_string()
                     .unwrap_or("<Could not extract error as string>".to_string())
             ));
-            return None;
+            None
         }
     }
 }
@@ -54,7 +54,7 @@ pub fn set_value_in_storage(key: impl AsRef<str>, value: impl AsRef<str>) {
     let storage = match storage {
         Some(s) => s,
         None => {
-            log(&format!("Failed to get storage. Got None.",));
+            log("Failed to get storage. Got None.");
             return;
         }
     };
@@ -67,7 +67,6 @@ pub fn set_value_in_storage(key: impl AsRef<str>, value: impl AsRef<str>) {
                 e.as_string()
                     .unwrap_or("<Could not extract error as string>".to_string())
             ));
-            return;
         }
     }
 }
