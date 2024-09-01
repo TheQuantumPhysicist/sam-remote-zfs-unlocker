@@ -38,6 +38,15 @@ impl WebPageConfig {
         let config_content = std::fs::read_to_string(path)?;
         Self::from_str(&config_content)
     }
+
+    pub fn from_base_url(url: impl Into<String>) -> Self {
+        let config = LiveSettings {
+            base_url: url.into(),
+        };
+        Self {
+            mode: LiveOrMock::Live(config),
+        }
+    }
 }
 
 impl FromStr for WebPageConfig {
