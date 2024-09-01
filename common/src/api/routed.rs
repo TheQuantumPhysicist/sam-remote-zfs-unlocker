@@ -46,7 +46,7 @@ impl ZfsRemoteAPI for ApiRouteImpl {
         let url = format!("{}/hello", self.base_url);
         let body: HelloResponse = do_get_request(&url).await.map_err(Into::into)?;
 
-        if body.result == HELLO_RESPONSE {
+        if body.result != HELLO_RESPONSE {
             Err(ApiError::UnexpectedHelloResponse(
                 HELLO_RESPONSE.to_string(),
                 body.result,
