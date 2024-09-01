@@ -1,3 +1,4 @@
+mod browser_helpers;
 mod cmds;
 mod command_communicator;
 mod config_reader;
@@ -5,6 +6,7 @@ mod dataset_state_retriever;
 mod modal;
 mod zfs;
 
+use browser_helpers::{get_value_from_storage, set_value_in_storage};
 use cmds::CommandsTable;
 use common::{
     api::{api_wrapper::ApiAny, mock::ApiMock, routed::ApiRouteImpl, traits::ZfsRemoteHighLevel},
@@ -69,7 +71,10 @@ fn InitComponent(base_url: Option<String>) -> impl IntoView {
 
 #[component]
 fn EnterAPIAddress(area_setter: WriteSignal<leptos::View>) -> impl IntoView {
-    let (url_input, set_url_input) = create_signal("".to_string());
+    let ADDRESS_IN_STORAGE_KEY: &str = "last_ip_address";
+
+    let (url_input, set_url_input) =
+        create_signal(get_value_from_storage(ADDRESS_IN_STORAGE_KEY).unwrap_or_default());
 
     view! {
         <p>"Enter API URL or attempt to reload config file"</p>
@@ -82,6 +87,7 @@ fn EnterAPIAddress(area_setter: WriteSignal<leptos::View>) -> impl IntoView {
             prop:value=url_input
         />
         <button on:click=move |_| {
+            set_value_in_storage(ADDRESS_IN_STORAGE_KEY, url_input.get());
             area_setter.set(view! { <InitComponent base_url=Some(url_input.get()) /> }.into_view());
         }>"Connect"</button>
         <button on:click=move |_| {
