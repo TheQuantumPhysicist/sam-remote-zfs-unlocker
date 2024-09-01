@@ -8,9 +8,9 @@ use crate::{
     config::LiveSettings,
     types::{
         AvailableCustomCommands, CustomCommandRunOptions, DatasetBody, DatasetFullMountState,
-        DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
+        DatasetMountedResponse, DatasetsFullMountState, HelloResponse, KeyLoadedResponse,
+        RunCommandOutput, HELLO_RESPONSE,
     },
-    HELLO_RESPONSE,
 };
 
 use super::{traits::ZfsRemoteAPI, wasm_request::WasmRequest};
@@ -44,12 +44,12 @@ impl ZfsRemoteAPI for ApiRouteImpl {
 
     async fn test_connection(&self) -> Result<(), Self::Error> {
         let url = format!("{}/hello", self.base_url);
-        let result: String = do_get_request(&url).await.map_err(Into::into)?;
+        let body: HelloResponse = do_get_request(&url).await.map_err(Into::into)?;
 
-        if result == HELLO_RESPONSE {
+        if body.result == HELLO_RESPONSE {
             Err(ApiError::UnexpectedHelloResponse(
                 HELLO_RESPONSE.to_string(),
-                result.to_string(),
+                body.result,
             ))
         } else {
             Ok(())

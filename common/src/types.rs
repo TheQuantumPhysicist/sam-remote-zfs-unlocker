@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+pub const HELLO_RESPONSE: &str = "WelcomeToTheUltimateUnlocker!";
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DatasetMountedResponse {
     pub dataset_name: String,
@@ -65,4 +67,17 @@ pub struct CustomCommandInfo {
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct CustomCommandRunOptions {
     pub stdin: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+pub struct HelloResponse {
+    pub result: String,
+}
+
+impl Default for HelloResponse {
+    fn default() -> Self {
+        Self {
+            result: HELLO_RESPONSE.to_string(),
+        }
+    }
 }
