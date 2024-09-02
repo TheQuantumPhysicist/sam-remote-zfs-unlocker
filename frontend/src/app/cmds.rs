@@ -131,7 +131,7 @@ fn CommandCallsTable<'a, A: ZfsRemoteHighLevel + 'static>(
 
 #[component]
 fn NoCommandsAvailable() -> impl IntoView {
-    view! { <p>"No commands available to execute"</p> }
+    view! { <p align="center">"No commands available to execute"</p> }
 }
 
 enum CustomCommandsTableColumnDefinition {

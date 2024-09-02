@@ -320,5 +320,5 @@ fn ZfsUnlocksTable<'a, A: ZfsRemoteHighLevel + 'static>(
 
 #[component]
 fn NothingToUnlock() -> impl IntoView {
-    view! { <p>"No ZFS datasets to show"</p> }
+    view! { <p align="center">"No ZFS datasets to show"</p> }
 }
