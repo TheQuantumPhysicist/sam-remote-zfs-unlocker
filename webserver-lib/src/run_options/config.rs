@@ -6,12 +6,11 @@ use serde::{Deserialize, Deserializer, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ApiServerConfig {
-    #[serde(
-        default,
-        deserialize_with = "validate_commands_list",
-        rename = "custom_command"
-    )]
-    pub custom_commands: Vec<CustomCommand>,
+    #[serde(flatten)]
+    pub custom_commands_config: CustomCommandsConfig,
+
+    #[serde(flatten)]
+    pub zfs_config: ZfsConfig,
 }
 
 impl ApiServerConfig {
@@ -22,8 +21,8 @@ impl ApiServerConfig {
         Self::from_str(&config_content)
     }
 
-    pub fn custom_commands(&self) -> &[CustomCommand] {
-        &self.custom_commands
+    pub fn custom_commands(&self) -> Option<&[CustomCommand]> {
+        self.custom_commands_config.custom_commands.as_deref()
     }
 }
 
@@ -36,7 +35,51 @@ impl FromStr for ApiServerConfig {
     }
 }
 
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CustomCommandsConfig {
+    #[serde(
+        default,
+        deserialize_with = "validate_commands_list",
+        rename = "custom_command"
+    )]
+    pub custom_commands: Option<Vec<CustomCommand>>,
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for CustomCommandsConfig {
+    fn default() -> Self {
+        Self {
+            custom_commands: None,
+        }
+    }
+}
+
+#[must_use]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ZfsConfig {
+    #[serde(default = "default_zfs_enabled")]
+    /// If disabled, listing ZFS datasets will return an empty set, and no operations will work
+    pub zfs_enabled: bool,
+
+    #[serde(default)]
+    /// ZFS datasets that won't be reachable with the API
+    pub blacklisted_zfs_datasets: Option<Vec<String>>,
+}
+
+impl Default for ZfsConfig {
+    fn default() -> Self {
+        Self {
+            zfs_enabled: default_zfs_enabled(),
+            blacklisted_zfs_datasets: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CustomCommand {
     /// The label of the command, to show in the UI
     pub label: String,
@@ -122,11 +165,16 @@ impl SingleOrChainedCommands {
 }
 
 // Custom deserialization function to validate the label field
-fn validate_commands_list<'de, D>(deserializer: D) -> Result<Vec<CustomCommand>, D::Error>
+fn validate_commands_list<'de, D>(deserializer: D) -> Result<Option<Vec<CustomCommand>>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let cmds: Vec<CustomCommand> = Deserialize::deserialize(deserializer)?;
+    let cmds: Option<Vec<CustomCommand>> = Deserialize::deserialize(deserializer)?;
+
+    let cmds = match cmds {
+        Some(cmds) => cmds,
+        None => return Ok(None),
+    };
 
     // Find duplicates in commands
     {
@@ -158,10 +206,14 @@ where
         }
     }
 
-    Ok(cmds)
+    Ok(Some(cmds))
 }
 
 fn default_true() -> bool {
+    true
+}
+
+pub fn default_zfs_enabled() -> bool {
     true
 }
 

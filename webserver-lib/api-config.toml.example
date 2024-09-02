@@ -1,3 +1,8 @@
+# If disabled, listing ZFS datasets will return an empty set, and no operations will work
+zfs_enabled = true
+# ZFS datasets that won't be reachable with the API
+blacklisted_zfs_datasets = ["some-pool/some-dataset"]
+
 [[custom_command]]
 # The label that will show up in the UI
 label = "Some piping"

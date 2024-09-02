@@ -49,6 +49,10 @@ enum Error {
     NonPrintablePassphrase(String, String),
     #[error("The commands chain is empty")]
     NoCommandsProvided,
+    #[error("ZFS control is disabled in API server")]
+    ZfsDisabled,
+    #[error("Attempted to mutate the state of a blacklisted dataset {0}")]
+    BlacklistedDataset(String),
 }
 
 impl IntoResponse for Error {
@@ -60,6 +64,8 @@ impl IntoResponse for Error {
             Error::PassphraseNotProvided(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
             Error::NonPrintablePassphrase(_, _) => (StatusCode::BAD_REQUEST, self.to_string()),
             Error::NoCommandsProvided => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Error::ZfsDisabled => (StatusCode::UNAUTHORIZED, self.to_string()),
+            Error::BlacklistedDataset(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
         };
 
         (status, Json(json!({ "error": message }))).into_response()
@@ -74,16 +80,21 @@ fn web_server(
     socket: TcpListener,
     config: Option<ApiServerConfig>,
 ) -> Serve<IntoMakeService<Router>, Router> {
-    let state = ServerState::new();
-    // Placeholder state, for future need
-    let state = Arc::new(Mutex::new(state));
-
     let cors_layer = CorsLayer::new()
         .allow_methods(AllowMethods::list([Method::GET, Method::POST]))
         .allow_headers(tower_http_axum::cors::Any)
         .allow_origin(tower_http_axum::cors::Any);
 
-    let custom_cmds_data = config.map(|cfg| commands_to_routables(cfg.custom_commands));
+    let (zfs_config, custom_cmds_config) = config
+        .map(|c| (c.zfs_config, c.custom_commands_config))
+        .unwrap_or_default();
+
+    let state = ServerState::new(zfs_config);
+    let state = Arc::new(Mutex::new(state));
+
+    let custom_cmds_data = custom_cmds_config
+        .custom_commands
+        .map(commands_to_routables);
     let custom_cmds_routes = custom_cmds_data
         .as_ref()
         .map(|cmds| routes_from_config(cmds.clone()))
