@@ -100,7 +100,7 @@ fn CommandCallsTable<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
     available_commands: &'a AvailableCustomCommands,
 ) -> impl IntoView {
-    log(&format!("Commands found: {:?}", available_commands));
+    // log(&format!("Commands found: {:?}", available_commands));
     let rows_count = available_commands.commands.len();
 
     let available_commands = (*available_commands).clone();

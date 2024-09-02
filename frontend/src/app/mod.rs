@@ -27,50 +27,104 @@ fn log(entry: &str) {
 
 #[component]
 pub fn App() -> impl IntoView {
-    view! { <InitComponent base_url=None /> }
+    view! { <FullPage /> }
 }
 
 #[component]
-fn InitComponent(base_url: Option<String>) -> impl IntoView {
-    let (main_page_getter, main_page_setter) = create_signal(view! {}.into_view());
+fn NavBar(contents_page_setter: WriteSignal<leptos::View>) -> impl IntoView {
+    let on_logout = move |_| {
+        contents_page_setter.set(
+            view! {
+                <div class="login-dialog">
+                    <EnterAPIAddress contents_page_setter />
+                </div>
+            }
+            .into_view(),
+        )
+    };
 
+    view! {
+        <nav class="navbar">
+            // inside "navbar-list-left" below, one can put menu items that will go to the left of the nav bar
+            <ul class="navbar-list-left"></ul>
+            <ul class="navbar-list-right">
+                <li class="navbar-item">
+                    <a href="#" on:click=on_logout>
+                        "Logout"
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
+}
+
+#[component]
+fn FullPage() -> impl IntoView {
+    let (contents_page_getter, contents_page_setter) = create_signal(view! {}.into_view());
+
+    contents_page_setter.set(view! { <ContentsPage base_url=None contents_page_setter /> });
+
+    move || {
+        view! {
+            <NavBar contents_page_setter />
+            {contents_page_getter.get()}
+        }
+    }
+}
+
+#[component]
+fn ContentsPage(
+    base_url: Option<String>,
+    contents_page_setter: WriteSignal<leptos::View>,
+) -> impl IntoView {
     let configuration_getter =
         create_local_resource(|| (), move |_| async { retrieve_config().await });
 
     let api_from_config_getter =
         move || configuration_getter.and_then(|config| api_from_config(config.clone()));
 
-    let main_page_view = view! {
-        {move || match api_from_config_getter() {
-            Some(Ok(api)) => view! { <MainPage api=api.clone() main_page_setter /> }.into_view(),
-            Some(Err(err)) => view! { <ConfigConnectError err main_page_setter /> }.into_view(),
-            None => {
-                view! {
-                    <div class="config-loading-page">
-                        <RandomLoadingImage />
-                    </div>
-                }
-                    .into_view()
+    let contents_page_on_config = {
+        move || {
+            view! {
+                {match api_from_config_getter() {
+                    Some(Ok(api)) => {
+                        view! { <TablesPage api=api.clone() contents_page_setter /> }.into_view()
+                    }
+                    Some(Err(err)) => {
+                        view! { <ConfigConnectError err contents_page_setter /> }.into_view()
+                    }
+                    None => {
+                        view! {
+                            <div class="config-loading-page">
+                                <RandomLoadingImage />
+                            </div>
+                        }
+                            .into_view()
+                    }
+                }}
             }
-        }}
+        }
+    };
+
+    let contents_page_on_base_url = move |url: &String| {
+        let api = api_from_config(WebPageConfig::from_base_url(url));
+        view! { <TablesPage api contents_page_setter /> }.into_view()
     };
 
     // Choose API from a given URL or load the info from a config file
-    let api_chooser = move || match &base_url {
-        Some(url) => {
-            let api = api_from_config(WebPageConfig::from_base_url(url.clone()));
-            view! { <MainPage api=api main_page_setter /> }.into_view()
-        }
-        None => main_page_view.into_view(),
+    let contents_page_view = move || match base_url.clone() {
+        Some(url) => { move || contents_page_on_base_url(&url) }.into_view(),
+        None => contents_page_on_config.into_view(),
     };
 
-    main_page_setter.set(api_chooser.into_view());
-
-    move || main_page_getter.get()
+    move || {
+        contents_page_setter.set(contents_page_view.clone().into_view());
+        contents_page_view()
+    }
 }
 
 #[component]
-fn EnterAPIAddress(area_setter: WriteSignal<leptos::View>) -> impl IntoView {
+fn EnterAPIAddress(contents_page_setter: WriteSignal<leptos::View>) -> impl IntoView {
     let ADDRESS_IN_STORAGE_KEY: &str = "last_ip_address";
 
     let (url_input, set_url_input) =
@@ -88,18 +142,23 @@ fn EnterAPIAddress(area_setter: WriteSignal<leptos::View>) -> impl IntoView {
         />
         <button on:click=move |_| {
             set_value_in_storage(ADDRESS_IN_STORAGE_KEY, url_input.get());
-            area_setter.set(view! { <InitComponent base_url=Some(url_input.get()) /> }.into_view());
+            contents_page_setter
+                .set(
+                    view! { <ContentsPage base_url=Some(url_input.get()) contents_page_setter /> }
+                        .into_view(),
+                );
         }>"Connect"</button>
         <button on:click=move |_| {
-            area_setter.set(view! { <InitComponent base_url=None /> }.into_view());
-        }>"Reload config file"</button>
+            contents_page_setter
+                .set(view! { <ContentsPage base_url=None contents_page_setter /> }.into_view());
+        }>"Load config file"</button>
     }
 }
 
 #[component]
-fn MainPage<A: ZfsRemoteHighLevel + 'static>(
+fn TablesPage<A: ZfsRemoteHighLevel + 'static>(
     api: A,
-    main_page_setter: WriteSignal<leptos::View>,
+    contents_page_setter: WriteSignal<leptos::View>,
 ) -> impl IntoView {
     let api_for_tester = api.clone();
     let api_tester = create_local_resource(
@@ -123,7 +182,7 @@ fn MainPage<A: ZfsRemoteHighLevel + 'static>(
                     .into_view()
             }
             Some(Err(err)) => {
-                view! { <ConfigConnectError err main_page_setter /> }
+                view! { <ConfigConnectError err contents_page_setter /> }
             }
             None => {
                 view! {
@@ -142,14 +201,14 @@ fn MainPage<A: ZfsRemoteHighLevel + 'static>(
 #[component]
 fn ConfigConnectError(
     err: impl std::error::Error,
-    main_page_setter: WriteSignal<leptos::View>,
+    contents_page_setter: WriteSignal<leptos::View>,
 ) -> impl IntoView {
     view! {
         <div class="config-load-error">
             <p>"Error loading config file."</p>
             <ToggleText to_show=err.to_string() to_show_name="error".to_string() />
             <hr />
-            <EnterAPIAddress area_setter=main_page_setter />
+            <EnterAPIAddress contents_page_setter />
         </div>
     }
     .into_view()
