@@ -31,7 +31,7 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, message) = match &self {
-            Error::Zfs(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+            Error::Zfs(e) => (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()),
             Error::DatasetNotFound(ds) => (StatusCode::NOT_FOUND, ds.to_string()),
             Error::KeyNotLoadedForDataset(_) => (StatusCode::METHOD_NOT_ALLOWED, self.to_string()),
             Error::PassphraseNotProvided(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
