@@ -23,6 +23,10 @@ pub enum ApiError {
     JsonConversion(String, String),
     #[error("Unexpected hello response. Expected: {0} - Found {1}")]
     UnexpectedHelloResponse(String, String),
+    #[error("Error in response with status code {0}: {1}")]
+    Response(u16, String),
+    #[error("Response content extraction error: {0}")]
+    ResponseExtraction(String),
 }
 
 #[derive(Debug, Clone)]
@@ -137,12 +141,21 @@ async fn do_get_request<J: for<'de> Deserialize<'de>>(url: &str) -> Result<J, Ap
         .get(url)
         .await
         .map_err(|e| ApiError::Request(e.to_string()))?;
-    let response_json = response
-        .json::<J>()
-        .await
-        .map_err(|e| ApiError::JsonConversion(url.to_string(), e.to_string()))?;
+    if response.ok() {
+        let response_json = response
+            .json::<J>()
+            .await
+            .map_err(|e| ApiError::JsonConversion(url.to_string(), e.to_string()))?;
+        Ok(response_json)
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .map_err(|e| ApiError::ResponseExtraction(e.to_string()))?;
 
-    Ok(response_json)
+        Err(ApiError::Response(status, error_text))
+    }
 }
 
 async fn do_post_request<J: for<'de> Deserialize<'de>, T: serde::Serialize>(
@@ -154,10 +167,21 @@ async fn do_post_request<J: for<'de> Deserialize<'de>, T: serde::Serialize>(
         .post(url, body, extra_headers)
         .await
         .map_err(|e| ApiError::Request(e.to_string()))?;
-    let response_json = response
-        .json::<J>()
-        .await
-        .map_err(|e| ApiError::JsonConversion(url.to_string(), e.to_string()))?;
 
-    Ok(response_json)
+    if response.ok() {
+        let response_json = response
+            .json::<J>()
+            .await
+            .map_err(|e| ApiError::JsonConversion(url.to_string(), e.to_string()))?;
+
+        Ok(response_json)
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .map_err(|e| ApiError::ResponseExtraction(e.to_string()))?;
+
+        Err(ApiError::Response(status, error_text))
+    }
 }
