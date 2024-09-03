@@ -56,3 +56,12 @@ panic = "abort" # prevent panic catching (mostly for the tokio runtime)
 
 [profile.release]
 panic = "abort" # prevent panic catching (mostly for the tokio runtime)
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -2 }
+nursery = { level = "deny", priority = -3 }
+unwrap_used = { level = "deny", priority = -1 }
