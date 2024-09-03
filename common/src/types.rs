@@ -52,11 +52,12 @@ pub struct RunCommandOutput {
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct AvailableCustomCommands {
-    pub commands: Vec<CustomCommandInfo>,
+    pub commands: Vec<CustomCommandPublicInfo>,
 }
 
+/// The response about a custom command when commands are queried
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
-pub struct CustomCommandInfo {
+pub struct CustomCommandPublicInfo {
     pub label: String,
     pub endpoint: String,
     pub stdin_allow: bool,

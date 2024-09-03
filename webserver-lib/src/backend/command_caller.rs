@@ -1,5 +1,7 @@
 use common::types::RunCommandOutput;
 
+use super::error::Error;
+
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum CommandError {
     #[error("Attempted to call empty command")]
@@ -13,7 +15,7 @@ pub enum CommandError {
 }
 
 #[allow(dead_code)]
-pub async fn run_command(
+async fn run_command(
     cmd_with_args: &[String],
     stdin: Option<String>,
 ) -> Result<RunCommandOutput, CommandError> {
@@ -109,4 +111,41 @@ pub async fn run_command(
             error_code: status.code().unwrap_or(255),
         })
     }
+}
+
+pub async fn chain_commands(
+    commands: &Vec<Vec<String>>,
+    initial_stdin: Option<String>,
+) -> Result<RunCommandOutput, Error> {
+    if commands.is_empty() {
+        return Err(Error::NoCommandsProvided);
+    }
+    let mut current_stdin = initial_stdin;
+
+    let mut result = RunCommandOutput {
+        stdout: String::new(),
+        stderr: String::new(),
+        error_code: 254,
+    };
+
+    for command in commands {
+        result = match run_command(command, current_stdin).await {
+            Ok(result) => result,
+            Err(e) => {
+                return Ok(RunCommandOutput {
+                    stdout: String::new(),
+                    stderr: e.to_string(),
+                    error_code: 253,
+                })
+            }
+        };
+
+        if result.error_code != 0 {
+            break;
+        }
+
+        current_stdin = Some(result.stdout.clone());
+    }
+
+    Ok(result)
 }

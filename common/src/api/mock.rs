@@ -8,8 +8,8 @@ use async_trait::async_trait;
 use crate::{
     config::{MockSettings, MockedCustomCommandConfig},
     types::{
-        AvailableCustomCommands, CustomCommandInfo, DatasetFullMountState, DatasetMountedResponse,
-        DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
+        AvailableCustomCommands, CustomCommandPublicInfo, DatasetFullMountState,
+        DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
     },
 };
 
@@ -39,7 +39,7 @@ pub struct MockDatasetDetails {
 
 #[derive(Debug, Clone)]
 pub struct MockCustomCommandDetails {
-    cmd: CustomCommandInfo,
+    cmd: CustomCommandPublicInfo,
     expected_stdout: String,
     expected_stderr: String,
     expected_error_code: i32,
@@ -73,7 +73,7 @@ impl ApiMock {
                     (
                         unique_label.clone(),
                         MockCustomCommandDetails {
-                            cmd: CustomCommandInfo {
+                            cmd: CustomCommandPublicInfo {
                                 label: unique_label.clone(),
                                 endpoint: unique_label,
                                 stdin_allow: stdin_config.is_stdin_enabled(),

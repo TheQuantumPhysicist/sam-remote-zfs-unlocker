@@ -4,7 +4,7 @@ use common::{
         routed::ApiRouteImpl,
         traits::{ZfsRemoteAPI, ZfsRemoteHighLevel},
     },
-    types::{AvailableCustomCommands, CustomCommandInfo, RunCommandOutput},
+    types::{AvailableCustomCommands, CustomCommandPublicInfo, RunCommandOutput},
 };
 use leptos::{
     component, create_action, create_local_resource, create_rw_signal, create_signal,
@@ -373,7 +373,7 @@ fn CheckMarkForSuccessIcon() -> impl IntoView {
 #[component]
 fn CommandRow<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,
-    command_info: Option<&'a CustomCommandInfo>,
+    command_info: Option<&'a CustomCommandPublicInfo>,
 ) -> impl IntoView {
     let command_resource = command_info.map(|m| CommandResource::new(m.clone(), api, &log));
 

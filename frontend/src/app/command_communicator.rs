@@ -1,6 +1,6 @@
 use common::{
     api::traits::{ZfsRemoteAPI, ZfsRemoteHighLevel},
-    types::{CustomCommandInfo, RunCommandOutput},
+    types::{CustomCommandPublicInfo, RunCommandOutput},
 };
 use leptos::{
     create_local_resource, create_signal, ReadSignal, Resource, SignalGet, SignalGetUntracked,
@@ -17,7 +17,7 @@ pub enum OutputExecutionResult<T> {
 #[must_use]
 #[derive(Debug, Clone)]
 pub struct CommandResource<A: ZfsRemoteHighLevel> {
-    command_info: CustomCommandInfo,
+    command_info: CustomCommandPublicInfo,
     res: Resource<(), OutputExecutionResult<Result<RunCommandOutput, <A as ZfsRemoteAPI>::Error>>>,
     set_stdin: WriteSignal<Option<String>>,
 }
@@ -26,7 +26,7 @@ impl<A: ZfsRemoteHighLevel + 'static> CommandResource<A> {
     fn make_resource(
         api: A,
         stdin_signal: ReadSignal<Option<String>>,
-        command_info: CustomCommandInfo,
+        command_info: CustomCommandPublicInfo,
         log_func: &'static impl Fn(&str),
     ) -> Resource<(), OutputExecutionResult<Result<RunCommandOutput, <A as ZfsRemoteAPI>::Error>>>
     {
@@ -59,7 +59,11 @@ impl<A: ZfsRemoteHighLevel + 'static> CommandResource<A> {
         )
     }
 
-    pub fn new(command_info: CustomCommandInfo, api: A, log_func: &'static impl Fn(&str)) -> Self {
+    pub fn new(
+        command_info: CustomCommandPublicInfo,
+        api: A,
+        log_func: &'static impl Fn(&str),
+    ) -> Self {
         let (stdin, set_stdin) = create_signal(None);
         Self {
             res: Self::make_resource(api, stdin, command_info.clone(), log_func),
@@ -68,7 +72,7 @@ impl<A: ZfsRemoteHighLevel + 'static> CommandResource<A> {
         }
     }
 
-    pub fn command_info(&self) -> &CustomCommandInfo {
+    pub fn command_info(&self) -> &CustomCommandPublicInfo {
         &self.command_info
     }
 
