@@ -10,7 +10,7 @@ use super::routable_command::RoutableCommand;
 
 #[async_trait]
 pub trait ExecutionBackend: Send + Sync + 'static {
-    type Error: std::error::Error + Send + Sync + 'static + IntoResponse;
+    type Error: std::error::Error + Send + Sync + 'static + IntoResponse + ExtraRequestErrors<Self>;
 
     fn zfs_encrypted_datasets_state(&self) -> Result<DatasetsFullMountState, Self::Error>;
     fn zfs_encrypted_dataset_state(
@@ -36,12 +36,14 @@ pub trait ExecutionBackend: Send + Sync + 'static {
         endpoint: &str,
         initial_stdin_input: Option<String>,
     ) -> Result<RunCommandOutput, Self::Error>;
+}
 
-    // TODO: move these function to their own trait and add it to Self::Error trait bounds
-    fn make_error_passphrase_missing(dataset_name: impl Into<String>) -> Self::Error;
+/// Errors that come from API requests details, instead of from the implementation
+pub trait ExtraRequestErrors<B: ExecutionBackend + ?Sized> {
+    fn make_error_passphrase_missing(dataset_name: impl Into<String>) -> B::Error;
     fn make_error_passphrase_non_printable(
         error: impl std::error::Error,
         dataset_name: impl Into<String>,
-    ) -> Self::Error;
-    fn make_error_internetl_custom_command_error(url_endpoint: String) -> Self::Error;
+    ) -> B::Error;
+    fn make_error_internetl_custom_command_error(url_endpoint: String) -> B::Error;
 }

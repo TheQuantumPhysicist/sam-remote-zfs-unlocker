@@ -12,8 +12,10 @@ use sam_zfs_unlocker::{
 use crate::run_options::config::ApiServerConfig;
 
 use super::{
-    command_caller::chain_commands, error::Error, routable_command::RoutableCommand,
-    traits::ExecutionBackend,
+    command_caller::chain_commands,
+    error::Error,
+    routable_command::RoutableCommand,
+    traits::{ExecutionBackend, ExtraRequestErrors},
 };
 
 pub struct LiveExecutionBackend {
@@ -214,25 +216,29 @@ impl ExecutionBackend for LiveExecutionBackend {
         endpoint: &str,
         initial_stdin_input: Option<String>,
     ) -> Result<RunCommandOutput, Self::Error> {
-        let cmd = self.custom_commands_routables.get(endpoint).unwrap();
+        let cmd = self.custom_commands_routables.get(endpoint).ok_or(
+            Error::make_error_internetl_custom_command_error(endpoint.to_string()),
+        )?;
 
         let result = chain_commands(&cmd.run_cmd, initial_stdin_input).await?;
 
         Ok(result)
     }
+}
 
-    fn make_error_passphrase_missing(dataset_name: impl Into<String>) -> Self::Error {
+impl ExtraRequestErrors<LiveExecutionBackend> for Error {
+    fn make_error_passphrase_missing(dataset_name: impl Into<String>) -> Error {
         Error::PassphraseNotProvided(dataset_name.into())
     }
 
     fn make_error_passphrase_non_printable(
         error: impl std::error::Error,
         dataset_name: impl Into<String>,
-    ) -> Self::Error {
+    ) -> Error {
         Error::NonPrintablePassphrase(error.to_string(), dataset_name.into())
     }
 
-    fn make_error_internetl_custom_command_error(url_endpoint: String) -> Self::Error {
+    fn make_error_internetl_custom_command_error(url_endpoint: String) -> Error {
         Error::RegisteredCmdMissing(url_endpoint)
     }
 }

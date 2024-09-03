@@ -19,7 +19,7 @@ async fn route_handler_from_command<B: ExecutionBackend>(
         .backend
         .custom_cmds_routables()
         .get(&url_endpoint)
-        .unwrap();
+        .unwrap_or_else(|| panic!("Invariant broken on initialization. URL endpoint is expected to be in the state, but was not found."));
 
     let stdin = json_body.and_then(|b| b.stdin.clone());
 

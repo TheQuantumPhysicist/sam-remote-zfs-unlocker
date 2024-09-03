@@ -10,7 +10,11 @@ use common::types::DatasetBody;
 use hyper::HeaderMap;
 use tokio::sync::Mutex;
 
-use crate::{backend::traits::ExecutionBackend, state::ServerState, StateType, ZFS_DIR};
+use crate::{
+    backend::traits::{ExecutionBackend, ExtraRequestErrors},
+    state::ServerState,
+    StateType, ZFS_DIR,
+};
 
 async fn mount_dataset<B: ExecutionBackend>(
     State(state): State<Arc<Mutex<ServerState<B>>>>,
@@ -36,12 +40,12 @@ async fn load_key<B: ExecutionBackend>(
 
     let passphrase = match headers.get("Authorization") {
         Some(pp) => pp,
-        None => return Err(B::make_error_passphrase_missing(dataset_name)),
+        None => return Err(B::Error::make_error_passphrase_missing(dataset_name)),
     };
 
     let passphrase = passphrase
         .to_str()
-        .map_err(|e| B::make_error_passphrase_non_printable(e, dataset_name.clone()))?;
+        .map_err(|e| B::Error::make_error_passphrase_non_printable(e, dataset_name.clone()))?;
 
     let result = state.backend.zfs_load_key(dataset_name, passphrase)?;
 
