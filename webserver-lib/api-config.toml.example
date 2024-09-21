@@ -53,7 +53,7 @@ enabled = false
 
 # Command to check if docker is running, where we filter with grep the "Active" line
 [[custom_command]]
-label = "Check docker running"
+label = "Check if docker is running"
 url_endpoint = "docker-check"
 run_cmd = [["systemctl", "status", "docker"], ["grep", "Active"]]
 stdin_allow = false
