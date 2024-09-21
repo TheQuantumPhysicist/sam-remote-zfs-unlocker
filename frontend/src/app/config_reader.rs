@@ -7,7 +7,10 @@ use super::log;
 const CONFIG_URL: &str = "/public/app-config.toml";
 
 fn is_html(file: &str) -> bool {
-    file.trim().starts_with("<!DOCTYPE html>") || file.to_lowercase().trim().starts_with("<html>")
+    file.trim()
+        .to_ascii_lowercase()
+        .starts_with("<!doctype html")
+        || file.to_lowercase().trim().starts_with("<html")
 }
 
 #[derive(thiserror::Error, Debug, Clone)]
