@@ -4,7 +4,7 @@ description = "Software that can remotely unlock ZFS drives through a web page"
 readme = "README.md"
 license = "MIT"
 version = "0.1.0"
-authors = ["Samer Afach"]
+authors = ["TheQuantumPhysicist"]
 edition = "2021"
 
 [workspace.package]
