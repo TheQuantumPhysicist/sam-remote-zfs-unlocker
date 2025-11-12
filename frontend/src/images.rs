@@ -25,8 +25,8 @@ static SPINNING_ANIMS_BASE64: LazyLock<Vec<String>> = LazyLock::new(|| {
 
 #[component]
 pub fn RandomLoadingImage() -> impl IntoView {
-    let mut rng = rand::thread_rng();
-    let index = rng.gen_range(0..SPINNING_ANIMS_BASE64.len());
+    let mut rng = rand::rng();
+    let index = rng.random_range(0..SPINNING_ANIMS_BASE64.len());
     let image_base64 = &SPINNING_ANIMS_BASE64[index];
     view! { <img src=format!("data:image/png;base64,{}", image_base64) alt="Loading..." /> }
 }

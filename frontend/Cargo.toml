@@ -10,14 +10,22 @@ base64 = "0.22"
 console_error_panic_hook = "0.1"
 http = "1.1"
 futures = "0.3"
-icondata = "0.4"
+icondata = "0.6"
 leptos = { version = "0.6", features = ["csr"] }
 leptos_icons = "0.3"
-rand = "0.8"
+rand = "0.9"
 reqwasm = "0.5"
-thiserror = "1.0"
+thiserror = "2.0"
 web-sys = { version = "0.3", features = ["DomRect", "Storage"] }
 
 wasm-bindgen-futures = { workspace = true }
 
 common = { path = "../common/" }
+
+# needed due to an error when running `trunk serve`
+# error: The wasm32-unknown-unknown targets are not supported by default;
+# you may need to enable the "wasm_js" configuration flag.
+# Note that enabling the wasm_js feature flag alone is insufficient.
+# For more information see: https://docs.rs/getrandom/0.3.4/#webassembly-support
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }

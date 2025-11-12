@@ -7,7 +7,9 @@
     "editor.formatOnSave": true,
     "cSpell.words": [
         "bindgen",
+        "getrandom",
         "gloo",
+        "icondata",
         "leptos",
         "reqwasm",
         "Unlocker",
