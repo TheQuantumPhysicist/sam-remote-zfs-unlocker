@@ -282,6 +282,7 @@ fn ZfsDatasetRow<'a, A: ZfsRemoteHighLevel + 'static>(
 }
 
 #[allow(clippy::needless_lifetimes)]
+#[allow(unused_parens)]
 #[component]
 fn ZfsUnlocksTable<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,

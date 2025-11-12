@@ -6,7 +6,10 @@
     ],
     "editor.formatOnSave": true,
     "cSpell.words": [
+        "bindgen",
+        "gloo",
         "leptos",
+        "reqwasm",
         "Unlocker",
         "webserver"
     ],

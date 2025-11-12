@@ -46,7 +46,7 @@ This software has two components:
 
 The API server is supposed to be running in the background constantly. It can receive API requests through some port (default is 6677). The frontend loads in the browser, loads its configuration, and uses that configuration to know where to find the API server. Then, the frontend connects to the API server, and asks it for what commands it can run, and what ZFS commands it can run.
 
-### How to run:
+### How to run
 
 There's still no packaged version of the software. Maybe I'll do this later if enough people ask for it. Right now this software solves my own problems.
 
@@ -56,14 +56,14 @@ The API server can be run with:
 2. Copy `app-config.toml.example` to `app-config.toml`, and configure the base URL setting. (Note: There are mock settings that I use for testing the frontend. You can ignore them. Just set the base URL and that's all you need)
 3. To run the API server, run the command:
 
-```
+```bash
 cargo run --bin webserver -- server --config-path webserver-lib/api-config.toml
 ```
 
 4. Make sure you have trunk installed: `cargo install trunk`
 5. Enter the directory `frontend`, and launch the frontend:
 
-```
+```bash
 trunk serve --open
 ```
 

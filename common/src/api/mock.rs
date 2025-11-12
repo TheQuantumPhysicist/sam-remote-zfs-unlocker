@@ -286,6 +286,6 @@ async fn sleep_for_dramatic_effect() {
 }
 
 fn random_0_to_1_float() -> f32 {
-    let mut rng = rand::thread_rng();
-    rand::Rng::gen_range(&mut rng, 0.0..1.0)
+    let mut rng = rand::rng();
+    rand::Rng::random_range(&mut rng, 0.0..1.0)
 }

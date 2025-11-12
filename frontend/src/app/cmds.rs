@@ -95,6 +95,7 @@ pub fn CommandsTable<A: ZfsRemoteHighLevel + 'static>(api: A) -> impl IntoView {
 }
 
 #[allow(clippy::needless_lifetimes)]
+#[allow(unused_parens)]
 #[component]
 fn CommandCallsTable<'a, A: ZfsRemoteHighLevel + 'static>(
     api: A,

@@ -223,7 +223,7 @@ mod tests {
 
     #[test]
     fn basic() {
-        let _config = ApiServerConfig::from_file("api-config.toml").unwrap();
+        let _config = ApiServerConfig::from_file("api-config.toml.example").unwrap();
         // println!("{_config:?}");
         // println!("{}", toml::to_string_pretty(&_config).unwrap());
     }

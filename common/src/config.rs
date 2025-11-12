@@ -119,7 +119,8 @@ mod tests {
     #[test]
     fn load_from_file() {
         // println!("{}", std::env::current_dir().unwrap().display());
-        let _config = WebPageConfig::from_file("../frontend/public/app-config.toml").unwrap();
+        let _config =
+            WebPageConfig::from_file("../frontend/public/app-config.toml.example").unwrap();
         // println!("{_config:?}");
         // println!("{}", toml::to_string_pretty(&_config).unwrap());
     }
