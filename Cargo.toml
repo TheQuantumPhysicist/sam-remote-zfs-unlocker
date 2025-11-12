@@ -27,7 +27,7 @@ default-members = [
 
 [dependencies]
 
-
+# TODO: update axum and tower
 [workspace.dependencies]
 async_channel_io = "0.3"
 async-trait = "0.1"
