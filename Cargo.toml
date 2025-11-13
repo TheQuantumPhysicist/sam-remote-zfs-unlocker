@@ -5,7 +5,7 @@ readme = "README.md"
 license = "MIT"
 version = "0.1.0"
 authors = ["TheQuantumPhysicist"]
-edition = "2021"
+edition = "2024"
 
 [workspace.package]
 edition = "2021"

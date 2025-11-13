@@ -5,7 +5,7 @@ use api_server::{run_options::RunOptions, start_server};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "debug");
+        unsafe { std::env::set_var("RUST_LOG", "debug") };
     }
 
     tracing_subscriber::fmt()
