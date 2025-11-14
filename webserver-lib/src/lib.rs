@@ -6,12 +6,7 @@ mod zfs;
 
 use std::sync::Arc;
 
-use axum::{
-    response::IntoResponse,
-    routing::{get, IntoMakeService},
-    serve::Serve,
-    Json, Router,
-};
+use axum::{response::IntoResponse, routing::get, Json, Router};
 use backend::error::Error;
 use backend::{live::LiveExecutionBackend, traits::ExecutionBackend};
 use common::types::HelloResponse;
@@ -37,11 +32,11 @@ async fn hello() -> Result<impl IntoResponse, Error> {
     Ok(Json::from(HelloResponse::default()))
 }
 
-fn web_server<B: ExecutionBackend>(
+async fn web_server<B: ExecutionBackend>(
     socket: TcpListener,
     config: Option<ApiServerConfig>,
     backend: B,
-) -> Serve<IntoMakeService<Router>, Router> {
+) -> anyhow::Result<()> {
     let cors_layer = CorsLayer::new()
         .allow_methods(AllowMethods::list([Method::GET, Method::POST]))
         .allow_headers(tower_http_axum::cors::Any)
@@ -69,10 +64,12 @@ fn web_server<B: ExecutionBackend>(
         .layer(tower_http_axum::trace::TraceLayer::new_for_http())
         .fallback(handler_404);
 
-    axum::serve(socket, routes.into_make_service())
+    axum::serve(socket, routes).await?;
+
+    Ok(())
 }
 
-pub async fn start_server(options: ServerRunOptions) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn start_server(options: ServerRunOptions) -> anyhow::Result<()> {
     let bind_address = options.bind_address();
     let listener_socket = TcpListener::bind(bind_address).await?;
 
@@ -85,6 +82,7 @@ pub async fn start_server(options: ServerRunOptions) -> Result<(), Box<dyn std::
         Some(config.clone()),
         LiveExecutionBackend::new(config),
     )
-    .await
-    .map_err(Into::into)
+    .await?;
+
+    Ok(())
 }

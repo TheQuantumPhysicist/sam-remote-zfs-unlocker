@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use axum::{async_trait, response::IntoResponse};
+use axum::response::IntoResponse;
 use common::types::{
     AvailableCustomCommands, DatasetFullMountState, DatasetMountedResponse, DatasetsFullMountState,
     KeyLoadedResponse, RunCommandOutput,
@@ -8,7 +8,7 @@ use common::types::{
 
 use super::routable_command::RoutableCommand;
 
-#[async_trait]
+#[async_trait::async_trait]
 pub trait ExecutionBackend: Send + Sync + 'static {
     type Error: std::error::Error + Send + Sync + 'static + IntoResponse + ExtraRequestErrors<Self>;
 

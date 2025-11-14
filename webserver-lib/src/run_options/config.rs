@@ -14,9 +14,7 @@ pub struct ApiServerConfig {
 }
 
 impl ApiServerConfig {
-    pub fn from_file(
-        path: impl AsRef<Path>,
-    ) -> Result<ApiServerConfig, Box<dyn std::error::Error>> {
+    pub fn from_file(path: impl AsRef<Path>) -> anyhow::Result<ApiServerConfig> {
         let config_content = std::fs::read_to_string(path)?;
         Self::from_str(&config_content)
     }
@@ -27,7 +25,7 @@ impl ApiServerConfig {
 }
 
 impl FromStr for ApiServerConfig {
-    type Err = Box<dyn std::error::Error>;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let config: ApiServerConfig = toml::from_str(s)?;

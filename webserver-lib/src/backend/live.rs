@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use axum::async_trait;
 use common::types::{
     AvailableCustomCommands, CustomCommandPublicInfo, DatasetFullMountState,
     DatasetMountedResponse, DatasetsFullMountState, KeyLoadedResponse, RunCommandOutput,
@@ -102,7 +101,7 @@ impl LiveExecutionBackend {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl ExecutionBackend for LiveExecutionBackend {
     type Error = super::error::Error;
 

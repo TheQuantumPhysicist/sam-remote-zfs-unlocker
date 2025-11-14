@@ -34,7 +34,7 @@ pub struct WebPageConfig {
 }
 
 impl WebPageConfig {
-    pub fn from_file(path: impl AsRef<Path>) -> Result<WebPageConfig, Box<dyn std::error::Error>> {
+    pub fn from_file(path: impl AsRef<Path>) -> anyhow::Result<WebPageConfig> {
         let config_content = std::fs::read_to_string(path)?;
         Self::from_str(&config_content)
     }
@@ -50,7 +50,7 @@ impl WebPageConfig {
 }
 
 impl FromStr for WebPageConfig {
-    type Err = Box<dyn std::error::Error>;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let config: WebPageConfig = toml::from_str(s)?;

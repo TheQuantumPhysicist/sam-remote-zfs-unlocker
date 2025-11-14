@@ -27,17 +27,17 @@ default-members = [
 
 [dependencies]
 
-# TODO: update axum and tower
 [workspace.dependencies]
+anyhow = "1.0"
 async_channel_io = "0.3"
 async-trait = "0.1"
-axum = "0.7"
+axum = "0.8"
 blake2 = "0.10"
 clap = "4.5"
 gloo-timers = { version = "0.3.0" }
 log = "0.4"
 hex = "0.4"
-hyper = "1.0"
+hyper = "1.8"
 rand = "0.9"
 reqwasm = "0.5"
 sam-zfs-unlocker = "0.1"
@@ -46,7 +46,7 @@ serde_json = "1.0"
 thiserror = "2.0"
 tokio = { version = "1.39", features = ["full"] }
 toml = "0.9"
-tower-http-axum = { version = "0.5", package = "tower-http" }
+tower-http-axum = { version = "0.6", package = "tower-http" }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 wasm-bindgen-futures = "0.4"
