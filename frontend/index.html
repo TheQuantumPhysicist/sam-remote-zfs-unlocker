@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link data-trunk rel="rust" data-wasm-opt="z" />
+    <!-- wasm-opt crashes on Raspberry Pi (SIGILL), so we disable it with data-wasm-opt="0" -->
+    <link data-trunk rel="rust" data-wasm-opt="0" />
     <link data-trunk rel="icon" type="image/ico" href="/public/favicon.ico" />
     <link data-trunk rel="copy-dir" href="./public" />
   </head>
