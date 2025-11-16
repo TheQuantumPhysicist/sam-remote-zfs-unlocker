@@ -1,0 +1,4 @@
+[build]
+# Disable integrity checks because rebuilding changes the hash of the js file and breaks loading the page
+# Since this project is internal, it doesn't matter.
+no_sri = true
